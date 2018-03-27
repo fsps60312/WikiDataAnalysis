@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Threading;
 
 namespace WikiDataAnalysis
 {
@@ -114,8 +115,13 @@ namespace WikiDataAnalysis
         }
         public void Build()
         {
-            BuildTree();
-            BuildCount();
+            Thread thread = new Thread(new ThreadStart(() =>
+              {
+                  BuildTree();
+                  BuildCount();
+                  UpdateStatus("Done");
+              }), 2147483647);
+            thread.Start();
         }
     }
     partial class SAM

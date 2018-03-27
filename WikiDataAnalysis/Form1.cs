@@ -54,7 +54,7 @@ namespace WikiDataAnalysis
                             if (n == 0) break;
                             for (int i = 0; i < n; i++) sb.Append(buf[i]);
                             this.Text = $"Reading...{s.Position}/{s.Length}";
-                            if (s.Position > 50000000) break;
+                            if (s.Position > 10000000) break;
                         }
                         data = sb.ToString();
                     }
