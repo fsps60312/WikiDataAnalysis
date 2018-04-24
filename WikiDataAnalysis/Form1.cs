@@ -9,27 +9,85 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Motivation;
 using System.IO;
+using System.Diagnostics;
 
 namespace WikiDataAnalysis
 {
     public partial class Form1 : Form
     {
         MyTableLayoutPanel TLPmain = new MyTableLayoutPanel(1, 3, "P", "P2P2P");
+        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(2, 1, "P2P", "P");
         MyTextBox TXBin = new MyTextBox(true), TXBout = new MyTextBox(true),TXBdata=new MyTextBox(true);
+        MyButton BTNsplit = new MyButton("Split");
         public Form1()
         {
-            InitializeComponent();
+            Trace.UseGlobalLock = false;
+            //InitializeComponent();
             this.Size = new Size(1000, 600);
-            TLPmain.Controls.Add(TXBin, 0, 0);
+            this.FormClosed += Form1_FormClosed;
+            TLPmain.Controls.Add(TLPctrl, 0, 0);
+            {
+                TLPctrl.Controls.Add(TXBin, 0, 0);
+                TLPctrl.Controls.Add(BTNsplit, 1, 0);
+            }
             TLPmain.Controls.Add(TXBout, 0, 1);
             TLPmain.Controls.Add(TXBdata, 0, 2);
             TXBdata.TextChanged += TXBdata_TextChanged;
             TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
             TXBin.TextChanged += TXBin_TextChanged;
+            BTNsplit.Click += BTNsplit_Click;
             this.Controls.Add(TLPmain);
-            sam = new SAM();
-            sam.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
+            //sam = new SAM();
+            //sam.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
+            //sm = new SimpleMethod();
+            //sm.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
+            sa = new SuffixArray();
+            //sa.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
+            this.Shown += Form1_Shown;
+        }
+
+        private void BTNsplit_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Trace.Indent();
+                BTNsplit.Enabled = false;
+                SentenceSplitter ss = new SentenceSplitter();
+                using (var writer = new StreamWriter("output.txt", false, Encoding.UTF8))
+                {
+                    ss.WordIdentified += (word) => { writer.WriteLine(word); Application.DoEvents(); };
+                    Trace.WriteLine("Splitting...");
+                    var ans = ss.Split(sa);
+                    writer.Close();
+                    Trace.WriteLine($"{ans.Count} words identified.");
+                }
+            }
+            finally { Trace.Unindent(); BTNsplit.Enabled = true; }
+        }
+
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+            GenerateOutputWindow();
             this.Text = "Ready";
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            Process.GetCurrentProcess().Kill();
+        }
+
+        private void GenerateOutputWindow()
+        {
+            //Trace.Refresh();
+            var tl = new OutputForm.MyTraceListener();
+            Trace.Listeners.Add(tl);
+            var f = new OutputForm(tl);
+            f.Show();
+            f.Location = this.Location;
+            f.Top += this.Height;
+            f.BringToFront();
+            //System.Windows.Forms.MessageBox.Show($"{tl.IsThreadSafe} {Trace.UseGlobalLock}");
+            //Trace.UseGlobalLock = true;
         }
 
         private async void TXBdata_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -44,21 +102,25 @@ namespace WikiDataAnalysis
                         MessageBox.Show("File not opened");
                         return;
                     }
-                    using (StreamReader reader = new StreamReader(s,Encoding.UTF8))
+                    var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButtons.YesNoCancel);
+                    if (encodingSelected == DialogResult.Cancel) return;
+                    Trace.Assert(encodingSelected == DialogResult.Yes || encodingSelected == DialogResult.No);
+                    using (StreamReader reader = new StreamReader
+                        (s,encodingSelected==DialogResult.Yes? Encoding.UTF8:Encoding.Unicode))
                     {
-                        this.Text = "Reading...";
+                        Trace.WriteLine( "Reading...");
                         StringBuilder sb = new StringBuilder();
                         for(char[] buf=new char[1024*1024]; ;)
                         {
                             int n=await reader.ReadAsync(buf, 0, buf.Length);
                             if (n == 0) break;
                             for (int i = 0; i < n; i++) sb.Append(buf[i]);
-                            this.Text = $"Reading...{s.Position}/{s.Length}";
-                            if (s.Position > 10000000) break;
+                            Trace.WriteLine( $"Reading...{s.Position}/{s.Length}");
+                            //if (s.Position > 10000000) break;
                         }
-                        data = sb.ToString();
+                        data = sb.ToString().Replace("\r\n","");
                     }
-                    this.Text = $"{data.Length} charactors read";
+                    Trace.WriteLine( $"{data.Length} charactors read");
                     BuildData();
                 }
             }
@@ -66,16 +128,88 @@ namespace WikiDataAnalysis
         string data = "";
         private void TXBin_TextChanged(object sender, EventArgs e)
         {
-            TXBout.Text = $"Result:{sam.Count(TXBin.Text)}";
+            try
+            {
+                Trace.Indent();
+                int n = int.Parse(TXBin.Text);
+                List<Tuple<int, int>> s = new List<Tuple<int, int>>();
+                int pre = 0;
+                Trace.WriteLine("Searching...");
+                try
+                {
+                    Trace.Indent();
+                    int percentage = -1;
+                    for (int i = 1; ; i++)
+                    {
+                        if ((i + 1) * 100 / sa.S.Length > percentage)
+                        {
+                            Trace.WriteLine($"{++percentage}%");
+                        }
+                        if (i == sa.S.Length || sa.HEIGHT[i] < n)
+                        {
+                            int len = (i - 1) - (pre - 1);
+                            if (len > 1)
+                            {
+                                s.Add(new Tuple<int, int>(sa.SA[i - 1], len));
+                            }
+                            pre = i;
+                            if (i == sa.S.Length) break;
+                        }
+                    }
+                }
+                finally { Trace.Unindent(); }
+                Trace.WriteLine($"Constructing results...({s.Count})");
+                StringBuilder sb = new StringBuilder();
+                try
+                {
+                    Trace.Indent();
+                    Trace.WriteLine("Sorting...");
+                    s.Sort((a, b) => -a.Item2.CompareTo(b.Item2));
+                    Trace.WriteLine("Sorted.");
+                    int percentage = -1;
+                    for (int i = 0; i < s.Count; i++)
+                    {
+                        if (Math.Max((i + 1) * 100 / s.Count, sb.Length * 100 / 10000000) > percentage)
+                        {
+                            Trace.WriteLine($"{++percentage}%");
+                        }
+                        if (sb.Length > 10000000)
+                        {
+                            sb.AppendLine($"{s.Count - i} more lines...");
+                            break;
+                        }
+                        var t = sa.S.Substring(s[i].Item1, n);
+                        if (t.IndexOf('\r') == -1 && t.IndexOf('\n') == -1) sb.AppendLine($"{s[i].Item2}\t{t}");
+                    }
+                }
+                finally { Trace.Unindent(); }
+                Trace.Write("Done");
+                TXBout.Text = sb.ToString();
+            }
+            catch(Exception error)
+            {
+                TXBout.Text = error.ToString();
+            }
+            finally { Trace.Unindent(); }
         }
-        SAM sam;
+        //SAM sam;
+        //SimpleMethod sm;
+        SuffixArray sa;
         int counter = 0;
         private void BuildData()
         {
-            sam.Initialize();
-            sam.Extend(data);
-            sam.Build();
-            this.Text = $"#{++counter}";
+            //sam.Initialize();
+            //sam.Extend(data);
+            //sam.Build();
+            //sm.Calculate(data, 5);
+            try
+            {
+                Trace.Indent();
+                Trace.WriteLine("Form1.BuildData");
+                sa.Build(data);
+                this.Text = $"#{++counter}";
+            }
+            finally { Trace.Unindent(); }
         }
         private void TXBdata_TextChanged(object sender, EventArgs e)
         {
