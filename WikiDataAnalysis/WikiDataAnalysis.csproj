@@ -45,6 +45,7 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="Motivation">
       <HintPath>..\..\Motivation\Motivation\bin\Release\Motivation.dll</HintPath>
     </Reference>

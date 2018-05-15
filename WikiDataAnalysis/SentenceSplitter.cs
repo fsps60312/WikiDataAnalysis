@@ -9,9 +9,10 @@ namespace WikiDataAnalysis
 {
     class SentenceSplitter
     {
+        public SentenceSplitter(SuffixArray _motherSA) { motherSA = _motherSA; }
         public delegate void WordIdentifiedEventHandler(string word);
         public event WordIdentifiedEventHandler WordIdentified;
-        private List<Tuple<double,double>>FrequencyPerLength(SuffixArray sa)
+        private List<Tuple<double,double, int>>FrequencyPerLength(SuffixArray sa)
         {
             Trace.WriteLine("FrequencyPerLength(SuffixArray sa)...");
             try
@@ -31,8 +32,8 @@ namespace WikiDataAnalysis
                     linkr[i] = i + 1;
                 }
                 Trace.WriteLine("Almost finish...");
-                List<Tuple<double,double>> ans = new List<Tuple<double, double>>();
-                ans.Resize(n + 1, default(Tuple<double, double>));
+                List<Tuple<double,double,int>> ans = new List<Tuple<double, double, int>>();
+                ans.Resize(n + 1, default(Tuple<double, double, int>));
                 int j = n - 2;
                 long ro = n;
                 for (int i = n; i >=1; i--)
@@ -49,7 +50,7 @@ namespace WikiDataAnalysis
                         --j;//j+1 is the num of splittings
                     }
                     double u = (double)n / (j + 2);
-                    ans[i] = new Tuple<double, double>(u, Math.Sqrt((double)ro / (j + 2) - u * u));
+                    ans[i] = new Tuple<double, double,int>(u, Math.Sqrt((double)ro / (j + 2) - u * u),j+2);
                 }
                 Trace.Write("OK");
                 //System.Windows.Forms.MessageBox.Show(string.Join(", ", ans.GetRange(0, 20)));
@@ -59,14 +60,16 @@ namespace WikiDataAnalysis
         }
         private int Count(SuffixArray sa, int startIndex, int length)
         {
+            //var s = sa.S.Substring(startIndex, length);
+            //return sa.UpperBound(s) - sa.LowerBound(s);
             int l, r, n = sa.S.Length;
             l = r = sa.RANK[startIndex];
             int m = 1;
             for (; l - m >= 0 && string.Compare(sa.S, sa.SA[l], sa.S, sa.SA[l - m], length, StringComparison.Ordinal) == 0; m <<= 1) l -= m;
-            for (; m > 0 && l - m >= 0 && string.Compare(sa.S, sa.SA[l], sa.S, sa.SA[l - m], length, StringComparison.Ordinal) == 0; m >>= 1) l -= m;
+            for (; m > 0; m >>= 1) if (l - m >= 0 && string.Compare(sa.S, sa.SA[l], sa.S, sa.SA[l - m], length, StringComparison.Ordinal) == 0) l -= m;
             m = 1;
             for (; r + m < n && string.Compare(sa.S, sa.SA[r], sa.S, sa.SA[r + m], length, StringComparison.Ordinal) == 0; m <<= 1) r += m;
-            for (; m > 0 && r + m < n && string.Compare(sa.S, sa.SA[r], sa.S, sa.SA[r + m], length, StringComparison.Ordinal) == 0; m >>= 1) r += m;
+            for (; m > 0; m >>= 1) if (r + m < n && string.Compare(sa.S, sa.SA[r], sa.S, sa.SA[r + m], length, StringComparison.Ordinal) == 0) r += m;
             return r - l + 1;
         }
         private int Cut(SuffixArray sa, int startIndex, List<Tuple<double, double>> fpl, int maxWordLength)
@@ -88,15 +91,16 @@ namespace WikiDataAnalysis
             //System.Windows.Forms.MessageBox.Show($"{sa.S.Substring(startIndex, maxWordLength)}: {string.Join(", ", t)}");
             return ans;
         }
-        public List<string> Split(SuffixArray sa, int maxWordLength = 10)
+        SuffixArray motherSA;
+        public List<string> Split(string sa, int maxWordLength)
         {
             try
             {
                 Trace.Indent();
                 Trace.WriteLine("Getting FPL...");
-                var fpl = FrequencyPerLength(sa);
+                var fpl = FrequencyPerLength(motherSA);
                 Trace.Write("OK");
-                int n = sa.S.Length;
+                int n = sa.Length;
                 List<string> ans = new List<string>();
                 int[] pre = new int[n + 1], cnt = new int[n + 1];
                 double[] dp = new double[n + 1];
@@ -110,9 +114,9 @@ namespace WikiDataAnalysis
                 {
                     Parallel.For(1, Math.Min(n - i, maxWordLength) + 1, (l) =>
                            {
-                               double ratio = (Count(sa, i, l) - fpl[l].Item1) / Math.Pow(fpl[l].Item2, 1.0);
+                               double problog = Math.Log((double)Count(motherSA, i, l) / (motherSA.S.Length - l + 1)); //Math.Log((double)Count(sa, i, l) / fpl[l].Item1); //(Count(sa, i, l) - fpl[l].Item1) / Math.Pow(fpl[l].Item2, 1.0);
                                //var v = (dp[i] * cnt[i] + ratio) / (cnt[i] + 1);
-                               var v = dp[i] + ratio * l;
+                               var v = dp[i] + problog;
                                if (v > dp[i + l])
                                {
                                    dp[i + l] = v;
@@ -122,7 +126,7 @@ namespace WikiDataAnalysis
                            });
                     if (i > 0 && (i + 1) * 100L / n > percentage)
                     {
-                        Trace.WriteLine($"DPing... {++percentage}% Ex: {sa.S.Substring(i - pre[i], pre[i])} scored {dp[i]} avg {(double)i / cnt[i]} words");
+                        Trace.WriteLine($"DPing... {++percentage}% Ex: {sa.Substring(i - pre[i], pre[i])} scored {dp[i]} avg {(double)i / cnt[i]} words");
                     }
                 }
                 Trace.WriteLine("Tracing back...");
@@ -132,7 +136,7 @@ namespace WikiDataAnalysis
                 percentage = -1;
                 for (int i = idxs.Count - 1; i > 0; i--)
                 {
-                    string s = sa.S.Substring(idxs[i], idxs[i - 1] - idxs[i]);
+                    string s = sa.Substring(idxs[i], idxs[i - 1] - idxs[i]);
                     WordIdentified?.Invoke(s);
                     ans.Add(s);
                     if ((idxs.Count - i + 1) * 100L / idxs.Count > percentage)

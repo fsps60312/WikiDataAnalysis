@@ -42,7 +42,7 @@ namespace WikiDataAnalysis
             }
             TLPmain.Controls.Add(TXBout, 0, 1);
             TLPmain.Controls.Add(TXBdata, 0, 2);
-            TXBdata.TextChanged += TXBdata_TextChanged;
+            //TXBdata.TextChanged += TXBdata_TextChanged;
             TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
             TXBin.TextChanged += TXBin_TextChanged;
             BTNexportSA.Click += BTNexportSA_Click;
@@ -91,23 +91,34 @@ namespace WikiDataAnalysis
             }
             finally { Trace.Unindent(); }
         }
-
         private void BTNsplit_Click(object sender, EventArgs e)
         {
             try
             {
+                int maxWordLength=int.Parse(Microsoft.VisualBasic.Interaction.InputBox("Max Word Length?", "", "4"));
                 Trace.Indent();
                 BTNsplit.Enabled = false;
-                SentenceSplitter ss = new SentenceSplitter();
-                using (var writer = new StreamWriter("output.txt", false, Encoding.UTF8))
+                SentenceSplitter ss = new SentenceSplitter(sa);
+                string fileName = "output.txt";
+                var encoding = Encoding.UTF8;
+                using (var writer = new StreamWriter(fileName, false, encoding))
                 {
                     ss.WordIdentified += (word) => { writer.WriteLine(word); Application.DoEvents(); };
                     Trace.WriteLine("Splitting...");
-                    var ans = ss.Split(sa);
+                    var ans =string.IsNullOrWhiteSpace( TXBdata.Text)? ss.Split(sa.S,maxWordLength):ss.Split(TXBdata.Text,maxWordLength);
                     writer.Close();
                     Trace.WriteLine($"{ans.Count} words identified.");
                 }
+                if(new FileInfo(fileName).Length<100000)
+                {
+                    using (var reader = new StreamReader(fileName, encoding))
+                    {
+                        TXBout.Text = reader.ReadToEnd();
+                        reader.Close();
+                    }
+                }
             }
+            catch(Exception error) { TXBout.Text = error.ToString(); }
             finally { Trace.Unindent(); BTNsplit.Enabled = true; }
         }
 
