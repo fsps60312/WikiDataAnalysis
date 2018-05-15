@@ -16,9 +16,11 @@ namespace WikiDataAnalysis
     public partial class Form1 : Form
     {
         MyTableLayoutPanel TLPmain = new MyTableLayoutPanel(1, 3, "P", "P2P2P");
-        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(2, 1, "P2P", "P");
+        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(2, 4, "P2P", "PPPP");
         MyTextBox TXBin = new MyTextBox(true), TXBout = new MyTextBox(true),TXBdata=new MyTextBox(true);
-        MyButton BTNsplit = new MyButton("Split");
+        MyButton BTNsplit = new MyButton("Split"),BTNexportSA=new MyButton("Export SA");
+        MyCheckBox CHBdebugMode = new MyCheckBox("Debug Mode") {Checked = false };
+        ComboBox CBmethod = new ComboBox {Dock=DockStyle.Fill, Font = new Font("微軟正黑體", 15)};
         public Form1()
         {
             Trace.UseGlobalLock = false;
@@ -28,13 +30,22 @@ namespace WikiDataAnalysis
             TLPmain.Controls.Add(TLPctrl, 0, 0);
             {
                 TLPctrl.Controls.Add(TXBin, 0, 0);
-                TLPctrl.Controls.Add(BTNsplit, 1, 0);
+                TLPctrl.SetRowSpan(TXBin, TLPctrl.RowCount);
+                TLPctrl.Controls.Add(CBmethod, 1, 0);
+                {
+                    CBmethod.Items.Add("Count Word");
+                    CBmethod.Items.Add("List Words");
+                }
+                TLPctrl.Controls.Add(CHBdebugMode, 1, 1);
+                TLPctrl.Controls.Add(BTNexportSA, 1, 2);
+                TLPctrl.Controls.Add(BTNsplit, 1, 3);
             }
             TLPmain.Controls.Add(TXBout, 0, 1);
             TLPmain.Controls.Add(TXBdata, 0, 2);
             TXBdata.TextChanged += TXBdata_TextChanged;
             TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
             TXBin.TextChanged += TXBin_TextChanged;
+            BTNexportSA.Click += BTNexportSA_Click;
             BTNsplit.Click += BTNsplit_Click;
             this.Controls.Add(TLPmain);
             //sam = new SAM();
@@ -44,6 +55,41 @@ namespace WikiDataAnalysis
             sa = new SuffixArray();
             //sa.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
             this.Shown += Form1_Shown;
+        }
+
+        private void BTNexportSA_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Trace.Indent();
+                var sd = new SaveFileDialog();
+                if (sd.ShowDialog() == DialogResult.OK)
+                {
+                    using (var s = sd.OpenFile())
+                    {
+                        if (s == null)
+                        {
+                            MessageBox.Show("File not opened");
+                            return;
+                        }
+                        using (var writer = new StreamWriter(s, Encoding.UTF8))
+                        {
+                            Trace.WriteLine("Writing...");
+                            writer.WriteLine("SA.S");
+                            writer.WriteLine(string.Join(" ", sa.S));
+                            writer.WriteLine("SA.SA");
+                            writer.WriteLine(string.Join(" ", sa.SA));
+                            writer.WriteLine("SA.RANK");
+                            writer.WriteLine(string.Join(" ", sa.RANK));
+                            writer.WriteLine("SA.HEIGHT");
+                            writer.WriteLine(string.Join(" ", sa.HEIGHT));
+                            writer.Close();
+                        }
+                        Trace.WriteLine("Done");
+                    }
+                }
+            }
+            finally { Trace.Unindent(); }
         }
 
         private void BTNsplit_Click(object sender, EventArgs e)
@@ -116,75 +162,98 @@ namespace WikiDataAnalysis
                             if (n == 0) break;
                             for (int i = 0; i < n; i++) sb.Append(buf[i]);
                             Trace.WriteLine( $"Reading...{s.Position}/{s.Length}");
-                            //if (s.Position > 10000000) break;
+                            if (CHBdebugMode.Checked && s.Position > 10000000) break;
                         }
                         data = sb.ToString().Replace("\r\n","");
                     }
                     Trace.WriteLine( $"{data.Length} charactors read");
                     BuildData();
+                    //BTNsplit_Click(null, null);
                 }
             }
         }
         string data = "";
+        string ListWords(string dataInput)
+        {
+            int n = int.Parse(dataInput);
+            List<Tuple<int, int>> s = new List<Tuple<int, int>>();
+            int pre = 0;
+            Trace.WriteLine("Searching...");
+            try
+            {
+                Trace.Indent();
+                int percentage = -1;
+                for (int i = 1; ; i++)
+                {
+                    if ((i + 1) * 100L / sa.S.Length > percentage)
+                    {
+                        Trace.WriteLine($"{++percentage}%");
+                    }
+                    if (i == sa.S.Length || sa.HEIGHT[i] < n)
+                    {
+                        int len = (i - 1) - (pre - 1);
+                        if (len > 1)
+                        {
+                            s.Add(new Tuple<int, int>(sa.SA[i - 1], len));
+                        }
+                        pre = i;
+                        if (i == sa.S.Length) break;
+                    }
+                }
+            }
+            finally { Trace.Unindent(); }
+            Trace.WriteLine($"Constructing results...({s.Count})");
+            StringBuilder sb = new StringBuilder();
+            try
+            {
+                Trace.Indent();
+                Trace.WriteLine("Sorting...");
+                s.Sort((a, b) => -a.Item2.CompareTo(b.Item2));
+                Trace.WriteLine("Sorted.");
+                int percentage = -1;
+                for (int i = 0; i < s.Count; i++)
+                {
+                    if (Math.Max((i + 1) * 100L / s.Count, sb.Length * 100L / 10000000) > percentage)
+                    {
+                        Trace.WriteLine($"{++percentage}%");
+                    }
+                    if (sb.Length > 10000000)
+                    {
+                        sb.AppendLine($"{s.Count - i} more lines...");
+                        break;
+                    }
+                    var t = sa.S.Substring(s[i].Item1, n);
+                    if (t.IndexOf('\r') == -1 && t.IndexOf('\n') == -1) sb.AppendLine($"{s[i].Item2}\t{t}");
+                }
+            }
+            finally { Trace.Unindent(); }
+            Trace.Write("Done");
+            return sb.ToString();
+        }
+        string CountWord(string dataInput)
+        {
+            StringBuilder ans = new StringBuilder();
+            foreach(var _s in dataInput.Split('\n'))
+            {
+                var s = _s.TrimEnd('\r');
+                var ub = sa.UpperBound(s);
+                var lb = sa.LowerBound(s);
+                ans.AppendLine($"{s} \t{ub}:{lb}\t{ub-lb}");
+            }
+            return ans.ToString();
+        }
         private void TXBin_TextChanged(object sender, EventArgs e)
         {
             try
             {
                 Trace.Indent();
-                int n = int.Parse(TXBin.Text);
-                List<Tuple<int, int>> s = new List<Tuple<int, int>>();
-                int pre = 0;
-                Trace.WriteLine("Searching...");
-                try
+                Trace.WriteLine($"Method: {CBmethod.SelectedItem} \tInput: {TXBin.Text}");
+                switch(CBmethod.SelectedItem)
                 {
-                    Trace.Indent();
-                    int percentage = -1;
-                    for (int i = 1; ; i++)
-                    {
-                        if ((i + 1) * 100 / sa.S.Length > percentage)
-                        {
-                            Trace.WriteLine($"{++percentage}%");
-                        }
-                        if (i == sa.S.Length || sa.HEIGHT[i] < n)
-                        {
-                            int len = (i - 1) - (pre - 1);
-                            if (len > 1)
-                            {
-                                s.Add(new Tuple<int, int>(sa.SA[i - 1], len));
-                            }
-                            pre = i;
-                            if (i == sa.S.Length) break;
-                        }
-                    }
+                    case "List Words": TXBout.Text = ListWords(TXBin.Text);break;
+                    case "Count Word":TXBout.Text = CountWord(TXBin.Text);break;
+                    default:TXBout.Text = TXBin.Text;break;
                 }
-                finally { Trace.Unindent(); }
-                Trace.WriteLine($"Constructing results...({s.Count})");
-                StringBuilder sb = new StringBuilder();
-                try
-                {
-                    Trace.Indent();
-                    Trace.WriteLine("Sorting...");
-                    s.Sort((a, b) => -a.Item2.CompareTo(b.Item2));
-                    Trace.WriteLine("Sorted.");
-                    int percentage = -1;
-                    for (int i = 0; i < s.Count; i++)
-                    {
-                        if (Math.Max((i + 1) * 100 / s.Count, sb.Length * 100 / 10000000) > percentage)
-                        {
-                            Trace.WriteLine($"{++percentage}%");
-                        }
-                        if (sb.Length > 10000000)
-                        {
-                            sb.AppendLine($"{s.Count - i} more lines...");
-                            break;
-                        }
-                        var t = sa.S.Substring(s[i].Item1, n);
-                        if (t.IndexOf('\r') == -1 && t.IndexOf('\n') == -1) sb.AppendLine($"{s[i].Item2}\t{t}");
-                    }
-                }
-                finally { Trace.Unindent(); }
-                Trace.Write("Done");
-                TXBout.Text = sb.ToString();
             }
             catch(Exception error)
             {

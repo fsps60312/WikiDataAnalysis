@@ -15,6 +15,28 @@ namespace WikiDataAnalysis
         public List<int> RANK { get { return rank; } }
         public string S { get; private set; }
         List<int> sa = new List<int>(), height = new List<int>(), rank = new List<int>();
+        public int UpperBound(string s)
+        {
+            int l = 0, r = S.Length;
+            while(l<r)
+            {
+                int mid = (l + r) / 2;
+                if (string.Compare(S, SA[mid], s, 0, s.Length,StringComparison.Ordinal) <= 0) l = mid + 1;
+                else r = mid;
+            }
+            return r;
+        }
+        public int LowerBound(string s)
+        {
+            int l = 0, r = S.Length;
+            while (l < r)
+            {
+                int mid = (l + r) / 2;
+                if (string.Compare(S, SA[mid], s, 0, s.Length, StringComparison.Ordinal) < 0) l = mid + 1;
+                else r = mid;
+            }
+            return r;
+        }
         Dictionary<char, int> GetIdx(string s)
         {
             try

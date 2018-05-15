@@ -62,25 +62,25 @@ namespace WikiDataAnalysis
             int l, r, n = sa.S.Length;
             l = r = sa.RANK[startIndex];
             int m = 1;
-            for (; l - m >= 0 && string.Compare(sa.S, sa.SA[l], sa.S, sa.SA[l - m], length) == 0; m <<= 1) l -= m;
-            for (; m > 0 && l - m >= 0 && string.Compare(sa.S, sa.SA[l], sa.S, sa.SA[l - m], length) == 0; m >>= 1) l -= m;
+            for (; l - m >= 0 && string.Compare(sa.S, sa.SA[l], sa.S, sa.SA[l - m], length, StringComparison.Ordinal) == 0; m <<= 1) l -= m;
+            for (; m > 0 && l - m >= 0 && string.Compare(sa.S, sa.SA[l], sa.S, sa.SA[l - m], length, StringComparison.Ordinal) == 0; m >>= 1) l -= m;
             m = 1;
-            for (; r + m < n && string.Compare(sa.S, sa.SA[r], sa.S, sa.SA[r + m], length) == 0; m <<= 1) r += m;
-            for (; m > 0 && r + m < n && string.Compare(sa.S, sa.SA[r], sa.S, sa.SA[r + m], length) == 0; m >>= 1) r += m;
+            for (; r + m < n && string.Compare(sa.S, sa.SA[r], sa.S, sa.SA[r + m], length, StringComparison.Ordinal) == 0; m <<= 1) r += m;
+            for (; m > 0 && r + m < n && string.Compare(sa.S, sa.SA[r], sa.S, sa.SA[r + m], length, StringComparison.Ordinal) == 0; m >>= 1) r += m;
             return r - l + 1;
         }
-        private int Cut(SuffixArray sa,int startIndex,List<Tuple<double,double>>fpl,int maxWordLength)
+        private int Cut(SuffixArray sa, int startIndex, List<Tuple<double, double>> fpl, int maxWordLength)
         {
             double currentMax = double.NegativeInfinity;
             int ans = -1;
             List<double> t = new List<double>();
-            for(int l=maxWordLength;l>=1;l--)
+            for (int l = maxWordLength; l >= 1; l--)
             {
                 double ratio = (Count(sa, startIndex, l) - Math.Pow(fpl[l].Item1, 1)) / fpl[l].Item2;
                 t.Add(ratio);
-                if(ratio>currentMax)
+                if (ratio > currentMax)
                 {
-                    currentMax=ratio;
+                    currentMax = ratio;
                     ans = l;
                 }
             }
@@ -96,23 +96,51 @@ namespace WikiDataAnalysis
                 Trace.WriteLine("Getting FPL...");
                 var fpl = FrequencyPerLength(sa);
                 Trace.Write("OK");
-                int i = 0, n = sa.S.Length;
+                int n = sa.S.Length;
                 List<string> ans = new List<string>();
-                Trace.WriteLine("Cutting...");
+                int[] pre = new int[n + 1], cnt = new int[n + 1];
+                double[] dp = new double[n + 1];
+                dp[0] = 0;
+                for (int i = 1; i <= n; i++) dp[i] = double.NegativeInfinity;
+                pre[0] = 1;//crutial to make 0-pre[0]<0 when tracing back
+                cnt[0] = 0;
+                Trace.WriteLine("DPing...");
                 int percentage = -1;
-                while (i < n)
+                for (int i = 0; i < n; i++)
                 {
-                    int l = Cut(sa, i, fpl, Math.Min(maxWordLength, n - i));
-                    string s = sa.S.Substring(i, l);
-                    WordIdentified?.Invoke(s);
-                    ans.Add(s);
-                    i += l;
-                    if ((i + 1) * 100 / n > percentage)
+                    Parallel.For(1, Math.Min(n - i, maxWordLength) + 1, (l) =>
+                           {
+                               double ratio = (Count(sa, i, l) - fpl[l].Item1) / Math.Pow(fpl[l].Item2, 1.0);
+                               //var v = (dp[i] * cnt[i] + ratio) / (cnt[i] + 1);
+                               var v = dp[i] + ratio * l;
+                               if (v > dp[i + l])
+                               {
+                                   dp[i + l] = v;
+                                   cnt[i + l] = cnt[i] + 1;
+                                   pre[i + l] = l;
+                               }
+                           });
+                    if (i > 0 && (i + 1) * 100L / n > percentage)
                     {
-                        Trace.WriteLine($"Cutting... {++percentage}% Ex: {s}");
+                        Trace.WriteLine($"DPing... {++percentage}% Ex: {sa.S.Substring(i - pre[i], pre[i])} scored {dp[i]} avg {(double)i / cnt[i]} words");
                     }
                 }
-                Trace.WriteLine("OK");
+                Trace.WriteLine("Tracing back...");
+                List<int> idxs = new List<int>();
+                for (int i = n; i >= 0; i -= pre[i]) idxs.Add(i);
+                Trace.WriteLine("Picking words...");
+                percentage = -1;
+                for (int i = idxs.Count - 1; i > 0; i--)
+                {
+                    string s = sa.S.Substring(idxs[i], idxs[i - 1] - idxs[i]);
+                    WordIdentified?.Invoke(s);
+                    ans.Add(s);
+                    if ((idxs.Count - i + 1) * 100L / idxs.Count > percentage)
+                    {
+                        Trace.WriteLine($"Picking words... {++percentage}% Ex: {s}");
+                    }
+                }
+                Trace.Write(" => OK");
                 return ans;
             }
             finally { Trace.Unindent(); }
