@@ -112,6 +112,19 @@ namespace WikiDataAnalysis
                     });
                     Trace.Write("|");
                     for (int i = n - 1; i >= 0; i--) sa[--c[x[y[i]]]] = y[i];
+                    //{
+                    //    int a = --c[x[y[n - 1]]], b = 0;
+                    //    for (int i = n - 2; i >= 0; i--)
+                    //    {
+                    //        Parallel.Invoke(new Action[]
+                    //        {
+                    //            ()=>sa[a]=y[i+1],
+                    //            ()=>b=--c[x[y[i]]]
+                    //        });
+                    //        Utils.Swap(ref a, ref b);
+                    //    }
+                    //    sa[a] = y[0];
+                    //}
                     Trace.Write("#");
                     w = 0;
                     Utils.Swap(ref x, ref y);

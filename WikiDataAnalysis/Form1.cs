@@ -16,10 +16,10 @@ namespace WikiDataAnalysis
     public partial class Form1 : Form
     {
         MyTableLayoutPanel TLPmain = new MyTableLayoutPanel(1, 3, "P", "P2P2P");
-        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(2, 4, "P2P", "PPPP");
+        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(2, 5, "P2P", "PPPPP");
         MyTextBox TXBin = new MyTextBox(true), TXBout = new MyTextBox(true),TXBdata=new MyTextBox(true);
         MyButton BTNsplit = new MyButton("Split"),BTNexportSA=new MyButton("Export SA");
-        MyCheckBox CHBdebugMode = new MyCheckBox("Debug Mode") {Checked = false };
+        MyCheckBox CHBdebugMode = new MyCheckBox("Debug Mode") {Checked = false },CHBremoveEmpty=new MyCheckBox("Remove Empty") {Checked=false };
         ComboBox CBmethod = new ComboBox {Dock=DockStyle.Fill, Font = new Font("微軟正黑體", 15)};
         public Form1()
         {
@@ -37,8 +37,9 @@ namespace WikiDataAnalysis
                     CBmethod.Items.Add("List Words");
                 }
                 TLPctrl.Controls.Add(CHBdebugMode, 1, 1);
-                TLPctrl.Controls.Add(BTNexportSA, 1, 2);
-                TLPctrl.Controls.Add(BTNsplit, 1, 3);
+                TLPctrl.Controls.Add(CHBremoveEmpty, 1, 2);
+                TLPctrl.Controls.Add(BTNexportSA, 1, 3);
+                TLPctrl.Controls.Add(BTNsplit, 1, 4);
             }
             TLPmain.Controls.Add(TXBout, 0, 1);
             TLPmain.Controls.Add(TXBdata, 0, 2);
@@ -56,7 +57,18 @@ namespace WikiDataAnalysis
             //sa.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
             this.Shown += Form1_Shown;
         }
-
+        private void WriteJoin<T>(StreamWriter writer, string seperator,IEnumerable<T>o,bool writeLine=true)
+        {
+            bool first = true;
+            Trace.WriteLine($"Writing {o.Count()} objects...");
+            foreach(var v in o)
+            {
+                if (first) first = false;
+                else writer.Write(seperator);
+                writer.Write(v);
+            }
+            if (writeLine) writer.WriteLine();
+        }
         private void BTNexportSA_Click(object sender, EventArgs e)
         {
             try
@@ -76,13 +88,13 @@ namespace WikiDataAnalysis
                         {
                             Trace.WriteLine("Writing...");
                             writer.WriteLine("SA.S");
-                            writer.WriteLine(string.Join(" ", sa.S));
+                            WriteJoin(writer," ", sa.S);
                             writer.WriteLine("SA.SA");
-                            writer.WriteLine(string.Join(" ", sa.SA));
+                            WriteJoin(writer, " ", sa.SA);
                             writer.WriteLine("SA.RANK");
-                            writer.WriteLine(string.Join(" ", sa.RANK));
+                            WriteJoin(writer, " ", sa.RANK);
                             writer.WriteLine("SA.HEIGHT");
-                            writer.WriteLine(string.Join(" ", sa.HEIGHT));
+                            WriteJoin(writer, " ", sa.HEIGHT);
                             writer.Close();
                         }
                         Trace.WriteLine("Done");
