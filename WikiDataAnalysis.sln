@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WikiDataAnalysis", "WikiDataAnalysis\WikiDataAnalysis.csproj", "{29AA3701-1D66-4D1C-B904-AF9662EE3547}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DownloadWikiData", "DownloadWikiData\DownloadWikiData.csproj", "{1A748F72-17CA-47B2-9101-72253E8AD825}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,6 +20,12 @@ Global
 		{29AA3701-1D66-4D1C-B904-AF9662EE3547}.Heavy Test|Any CPU.Build.0 = Heavy Test|Any CPU
 		{29AA3701-1D66-4D1C-B904-AF9662EE3547}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{29AA3701-1D66-4D1C-B904-AF9662EE3547}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A748F72-17CA-47B2-9101-72253E8AD825}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A748F72-17CA-47B2-9101-72253E8AD825}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A748F72-17CA-47B2-9101-72253E8AD825}.Heavy Test|Any CPU.ActiveCfg = Release|Any CPU
+		{1A748F72-17CA-47B2-9101-72253E8AD825}.Heavy Test|Any CPU.Build.0 = Release|Any CPU
+		{1A748F72-17CA-47B2-9101-72253E8AD825}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A748F72-17CA-47B2-9101-72253E8AD825}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
