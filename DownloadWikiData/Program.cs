@@ -126,9 +126,15 @@ namespace DownloadWikiData
             Console.WriteLine("Done");
             Console.WriteLine(webContent);
         }
+        static async void Run2()
+        {
+            BEMSmodel bs = new BEMSmodel();
+            await bs.DownloadDictionaryAsync();
+            Console.ReadLine();
+        }
         static void Main(string[] args)
         {
-            Run();
+            Run2();
             Console.ReadLine();
         }
     }

@@ -92,8 +92,11 @@ namespace WikiDataAnalysis
             return ans;
         }
         SuffixArray motherSA;
+        BEMSmodel bm;
         public async Task<List<string>> SplitAsync(string sa, int maxWordLength)
         {
+            bm = new BEMSmodel();
+            await bm.DownloadDictionaryAsync();
             return await Task.Run(() => Split(sa, maxWordLength));
         }
         public bool IsBuilt { get; private set; } = false;
