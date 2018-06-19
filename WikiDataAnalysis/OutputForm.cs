@@ -13,15 +13,46 @@ namespace WikiDataAnalysis
 {
     partial class OutputForm:Form
     {
+        /*public class MyTraceListener : DelimitedListTraceListener
+        {
+            public delegate void NewMsgEventHandler(string msg, int indent);
+            public event NewMsgEventHandler NewMsg;
+            public void MyWrite(string message)
+            {
+                NewMsg?.Invoke(message, this.IndentLevel);
+            }
+            public delegate void NewLineEventHandler(string msg, int indent);
+            public event NewLineEventHandler NewLine;
+            public void MyWriteLine(string message)
+            {
+                NewLine?.Invoke(message, this.IndentLevel);
+            }
+
+            public MyTraceListener(Stream stream):base(stream)
+            {
+                //var stream = new MemoryStream();
+                //this.Writer =new StreamWriter(stream,Encoding.UTF8);
+                new Thread(() =>
+                {
+                    byte[] buf = new byte[10];
+                    while (true)
+                    {
+                        int n = stream.Read(buf, 0, buf.Length);
+                        string s = Encoding.UTF8.GetString(buf, 0, n);
+                        MyWriteLine(s);
+                    }
+                }).Start();
+            }
+        }*/
         public class MyTraceListener : TraceListener
         {
-            public delegate void NewMsgEventHandler(string msg,int indent);
+            public delegate void NewMsgEventHandler(string msg, int indent);
             public event NewMsgEventHandler NewMsg;
             public override void Write(string message)
             {
                 NewMsg?.Invoke(message, this.IndentLevel);
             }
-            public delegate void NewLineEventHandler(string msg,int indent);
+            public delegate void NewLineEventHandler(string msg, int indent);
             public event NewLineEventHandler NewLine;
             public override void WriteLine(string message)
             {
@@ -53,8 +84,15 @@ namespace WikiDataAnalysis
                 {
                     if (InvokeRequired)
                     {
-                        toInvoke.Enqueue(new Tuple<Delegate, object[]>(new MyTraceListener.NewMsgEventHandler(f), new object[] { msg, indent }));
+                        TXB.Invoke(new Action(() =>
+                        {
+                            EnsureIndent(indent + 1);
+                            msgs[indent] += msg;
+                            ShowMsg();
+                        }));
                         return;
+                        //toInvoke.Enqueue(new Tuple<Delegate, object[]>(new MyTraceListener.NewMsgEventHandler(f), new object[] { msg, indent }));
+                        //return;
                     }
                     if(toInvoke.Count>0)
                     {
@@ -73,8 +111,15 @@ namespace WikiDataAnalysis
                 {
                     if (InvokeRequired)
                     {
-                        toInvoke.Enqueue(new Tuple<Delegate, object[]>(new MyTraceListener.NewLineEventHandler(f), new object[] { msg, indent }));
+                        TXB.Invoke(new Action(() =>
+                        {
+                            EnsureIndent(indent);
+                            msgs.Add(/*new string('\t', msgs.Count) +*/ msg);
+                            ShowMsg();
+                        }));
                         return;
+                        //toInvoke.Enqueue(new Tuple<Delegate, object[]>(new MyTraceListener.NewLineEventHandler(f), new object[] { msg, indent }));
+                        //return;
                     }
                     if (toInvoke.Count > 0)
                     {

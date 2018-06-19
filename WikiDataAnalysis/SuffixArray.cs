@@ -14,6 +14,7 @@ namespace WikiDataAnalysis
         public List<int> HEIGHT { get { return height; } }
         public List<int> RANK { get { return rank; } }
         public string S { get; private set; }
+        public bool IsBuilt { get; private set; } = false;
         List<int> sa = new List<int>(), height = new List<int>(), rank = new List<int>();
         public int UpperBound(string s)
         {
@@ -165,7 +166,11 @@ namespace WikiDataAnalysis
             //Debug.WriteLine(string.Join(", ", height));
             //for (int i = 0; i < n; i++) Debug.WriteLine($"{height[i]}\t{s.Substring(sa[i])}");
         }
-        public void Build(string s)
+        public async Task BuildAsync(string s)
+        {
+            await Task.Run(() => Build(s));
+        }
+        void Build(string s)
         {
             try
             {
@@ -175,8 +180,76 @@ namespace WikiDataAnalysis
                 BuildSA(s);
                 Trace.WriteLine("BuildHeight...");
                 BuildHeight(s);
+                IsBuilt = true;
             }
             finally { Trace.WriteLine("Build Done"); Trace.Unindent(); }
+        }
+        async Task<long> ReadNumberAsync(System.IO.Stream stream)
+        {
+            byte[] buffer = new byte[8];
+            Trace.Assert(await stream.ReadAsync(buffer, 0, buffer.Length) == buffer.Length);
+            return BitConverter.ToInt64(buffer, 0);
+        }
+        async Task WriteNumberAsync(System.IO.Stream stream,long v)
+        {
+            var buffer = BitConverter.GetBytes(v);
+            await stream.WriteAsync(buffer, 0, buffer.Length);
+        }
+        public async Task LoadAsync(System.IO.Stream fileStream)
+        {
+            try
+            {
+                Trace.Indent();
+                Trace.WriteLine("Loading...");
+                S = null;
+                sa = null;
+                rank = null;
+                height = null;
+                int n = (int)await ReadNumberAsync(fileStream);
+                Trace.WriteLine("Reading S data...");
+                {
+                    var data = new byte[await ReadNumberAsync(fileStream)];
+                    int i = 0;
+                    while (i < data.Length) i += await fileStream.ReadAsync(data, i, data.Length - i);
+                    Trace.WriteLine("Converting S from UTF8...");
+                    S = Encoding.UTF8.GetString(data);
+                }
+                Trace.WriteLine("Reading SA data...");
+                sa = new List<int>();
+                for (int i = 0; i < S.Length; i++) sa.Add((int)await ReadNumberAsync(fileStream));
+                Trace.WriteLine("Reading HEIGHT data...");
+                height = new List<int>();
+                for (int i = 0; i < S.Length; i++) height.Add((int)await ReadNumberAsync(fileStream));
+                Trace.WriteLine("Rebuilding RANK data...");
+                rank = new List<int>();
+                rank.Resize(S.Length, 0);
+                for (int i = 0; i < S.Length; i++) rank[sa[i]] = i;
+                Trace.WriteLine("Done.");
+            }
+            catch (Exception error) { Trace.WriteLine(error); }
+            finally { Trace.WriteLine("Loaded."); Trace.Unindent(); }
+        }
+        public async Task SaveAsync(System.IO.Stream fileStream)
+        {
+            try
+            {
+                Trace.Indent();
+                Trace.WriteLine("Saving...");
+                await WriteNumberAsync(fileStream, S.Length);
+                Trace.WriteLine("Converting S to UTF8...");
+                var data = Encoding.UTF8.GetBytes(S);
+                Trace.WriteLine("Writing S data...");
+                Trace.Assert(data.LongLength <= int.MaxValue);
+                await WriteNumberAsync(fileStream, data.Length);
+                await fileStream.WriteAsync(data, 0, data.Length);
+                Trace.WriteLine("Writing SA data...");
+                for (int i = 0; i < S.Length; i++) await WriteNumberAsync(fileStream, SA[i]);
+                Trace.WriteLine("Writing HEIGHT data...");
+                for (int i = 0; i < S.Length; i++) await WriteNumberAsync(fileStream, HEIGHT[i]);
+                Trace.WriteLine("Done.");
+            }
+            catch (Exception error) { Trace.WriteLine(error); }
+            finally { Trace.WriteLine("Saved."); Trace.Unindent(); }
         }
     }
 }

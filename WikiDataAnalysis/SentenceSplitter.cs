@@ -92,7 +92,13 @@ namespace WikiDataAnalysis
             return ans;
         }
         SuffixArray motherSA;
-        public List<string> Split(string sa, int maxWordLength)
+        public async Task<List<string>> SplitAsync(string sa, int maxWordLength)
+        {
+            return await Task.Run(() => Split(sa, maxWordLength));
+        }
+        public bool IsBuilt { get; private set; } = false;
+        public List<string> SplittedWords { get; private set; }
+        List<string> Split(string sa, int maxWordLength)
         {
             try
             {
@@ -145,6 +151,8 @@ namespace WikiDataAnalysis
                     }
                 }
                 Trace.Write(" => OK");
+                SplittedWords = ans;
+                IsBuilt = true;
                 return ans;
             }
             finally { Trace.Unindent(); }

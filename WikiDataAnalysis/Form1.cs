@@ -15,11 +15,17 @@ namespace WikiDataAnalysis
 {
     public partial class Form1 : Form
     {
-        MyTableLayoutPanel TLPmain = new MyTableLayoutPanel(1, 3, "P", "P2P2P");
-        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(2, 5, "P2P", "PPPPP");
+        MyTableLayoutPanel TLPmain = new MyTableLayoutPanel(1, 3, "P", "P2P2P"),TLPtop=new MyTableLayoutPanel(2,1,"P2P","P");
+        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(1, 9, "P", "PPPPPPPPP") {Dock=DockStyle.Top};
         MyTextBox TXBin = new MyTextBox(true), TXBout = new MyTextBox(true),TXBdata=new MyTextBox(true);
-        MyButton BTNsplit = new MyButton("Split"),BTNexportSA=new MyButton("Export SA");
-        MyCheckBox CHBdebugMode = new MyCheckBox("Debug Mode") {Checked = false },CHBremoveEmpty=new MyCheckBox("Remove Empty") {Checked=false };
+        MyButton BTNexportSA=new MyButton("Export SA");
+        MyButton BTNsave = new MyButton("Save SA"), BTNload = new MyButton("Load SA"),BTNnew=new MyButton("New data");
+        MyCheckBox
+            CHBdebugMode = new MyCheckBox("Debug Mode") { Checked = true },
+            CHBreplaceWithEmptyExceptChinese = new MyCheckBox("Replace with Empty except Chinese") { Checked = true },
+            CHBremoveEmpty = new MyCheckBox("Remove Empty") { Checked = false },
+            CHBsplit = new MyCheckBox("Split") { Checked = true },
+            CHBbems = new MyCheckBox("BEMS") { Checked = true };
         ComboBox CBmethod = new ComboBox {Dock=DockStyle.Fill, Font = new Font("微軟正黑體", 15)};
         public Form1()
         {
@@ -27,36 +33,260 @@ namespace WikiDataAnalysis
             //InitializeComponent();
             this.Size = new Size(1000, 600);
             this.FormClosed += Form1_FormClosed;
-            TLPmain.Controls.Add(TLPctrl, 0, 0);
+            TLPmain.Controls.Add(TLPtop, 0, 0);
             {
-                TLPctrl.Controls.Add(TXBin, 0, 0);
-                TLPctrl.SetRowSpan(TXBin, TLPctrl.RowCount);
-                TLPctrl.Controls.Add(CBmethod, 1, 0);
+                TLPtop.Controls.Add(TXBin, 0, 0);
+                TLPtop.Controls.Add(new MyPanel() { Controls = { TLPctrl }, AutoScroll = true, Dock = DockStyle.Top }, 1, 0);
                 {
-                    CBmethod.Items.Add("Count Word");
-                    CBmethod.Items.Add("List Words");
+                    //TLPctrl.SetRowSpan(TXBin, TLPctrl.RowCount);
+                    int row = 0;
+                    TLPctrl.Controls.Add(CBmethod, 0, row++);
+                    {
+                        CBmethod.Items.Add("Count Word");
+                        CBmethod.Items.Add("List Words");
+                    }
+                    TLPctrl.Controls.Add(CHBdebugMode, 0, row++);
+                    TLPctrl.Controls.Add(CHBreplaceWithEmptyExceptChinese, 0, row++);
+                    TLPctrl.Controls.Add(CHBremoveEmpty, 0, row++);
+                    TLPctrl.Controls.Add(BTNexportSA, 0, row++);
+                    TLPctrl.Controls.Add(BTNsave, 0, row++);
+                    TLPctrl.Controls.Add(BTNload, 0, row++);
+                    TLPctrl.Controls.Add(CHBsplit, 0, row++);
+                    TLPctrl.Controls.Add(CHBbems, 0, row++);
+                    TLPctrl.Controls.Add(BTNnew, 0, row++);
                 }
-                TLPctrl.Controls.Add(CHBdebugMode, 1, 1);
-                TLPctrl.Controls.Add(CHBremoveEmpty, 1, 2);
-                TLPctrl.Controls.Add(BTNexportSA, 1, 3);
-                TLPctrl.Controls.Add(BTNsplit, 1, 4);
             }
             TLPmain.Controls.Add(TXBout, 0, 1);
             TLPmain.Controls.Add(TXBdata, 0, 2);
             //TXBdata.TextChanged += TXBdata_TextChanged;
-            TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
+            //TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
             TXBin.TextChanged += TXBin_TextChanged;
             BTNexportSA.Click += BTNexportSA_Click;
-            BTNsplit.Click += BTNsplit_Click;
+            CHBsplit.CheckedChanged += CHBsplit_CheckedChanged;
+            CHBbems.CheckedChanged += CHBbems_CheckedChanged;
+            BTNsave.Click += BTNsave_Click;
+            BTNload.Click += BTNload_Click;
+            BTNnew.Click += BTNnew_Click;
             this.Controls.Add(TLPmain);
             //sam = new SAM();
             //sam.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
             //sm = new SimpleMethod();
             //sm.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
-            sa = new SuffixArray();
             //sa.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
+            sa = new SuffixArray();
+            ss = new SentenceSplitter(sa);
             this.Shown += Form1_Shown;
         }
+
+        private async void CHBbems_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (CHBbems.Checked)
+                {
+                    if (ss.IsBuilt)
+                    {
+                        await PerformBEMS();
+                    }
+                }
+            }
+            catch (Exception error) { TXBout.Text = error.ToString(); }
+        }
+        private async Task PerformBEMS()
+        {
+            try
+            {
+                Trace.Indent();
+                CHBbems.Enabled = false;
+                MessageBox.Show("BEMS!");
+                await Task.Delay(1000);
+                MessageBox.Show("YA!");
+            }
+            catch (Exception error) { TXBout.Text = error.ToString(); }
+            finally { Trace.Unindent(); CHBbems.CheckState = CheckState.Indeterminate; CHBbems.Enabled = true; }
+        }
+
+        private async void CHBsplit_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (CHBsplit.Checked)
+                {
+                    maxWordLength = int.Parse(Microsoft.VisualBasic.Interaction.InputBox("Max Word Length?", "", "4"));
+                    if (sa.IsBuilt)
+                    {
+                        await PerformSplit();
+                        CHBbems_CheckedChanged(null, null);
+                    }
+                }
+            }
+            catch(Exception error) { TXBout.Text = error.ToString(); }
+        }
+        int maxWordLength = 4;
+        private async Task PerformSplit()
+        {
+            try
+            {
+                Trace.Indent();
+                CHBsplit.Enabled = false;
+                string fileName = "output.txt";
+                var encoding = Encoding.UTF8;
+                using (var writer = new StreamWriter(fileName, false, encoding))
+                {
+                    ss.WordIdentified += (word) => { writer.WriteLine(word); Application.DoEvents(); };
+                    Trace.WriteLine("Splitting...");
+                    var ans = string.IsNullOrWhiteSpace(TXBdata.Text) ? await ss.SplitAsync(sa.S, maxWordLength) : await ss.SplitAsync(TXBdata.Text, maxWordLength);
+                    writer.Close();
+                    Trace.WriteLine($"{ans.Count} words identified.");
+                }
+                if (new FileInfo(fileName).Length < 100000)
+                {
+                    using (var reader = new StreamReader(fileName, encoding))
+                    {
+                        TXBout.Text = reader.ReadToEnd();
+                        reader.Close();
+                    }
+                }
+            }
+            catch (Exception error) { TXBout.Text = error.ToString(); }
+            finally { Trace.Unindent(); CHBsplit.CheckState = CheckState.Indeterminate; CHBsplit.Enabled = true; }
+        }
+
+        private async void BTNnew_Click(object sender, EventArgs e)
+        {
+            var fd = new OpenFileDialog();
+            if (fd.ShowDialog() == DialogResult.OK)
+            {
+                using (var s = fd.OpenFile())
+                {
+                    if (s == null)
+                    {
+                        MessageBox.Show("File not opened");
+                        return;
+                    }
+                    var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButtons.YesNoCancel);
+                    if (encodingSelected == DialogResult.Cancel) return;
+                    Trace.Assert(encodingSelected == DialogResult.Yes || encodingSelected == DialogResult.No);
+                    using (StreamReader reader = new StreamReader
+                        (s, encodingSelected == DialogResult.Yes ? Encoding.UTF8 : Encoding.Unicode))
+                    {
+                        Trace.WriteLine("Reading...");
+                        StringBuilder sb = new StringBuilder();
+                        for (char[] buf = new char[1024 * 1024]; ;)
+                        {
+                            int n = await reader.ReadAsync(buf, 0, buf.Length);
+                            if (n == 0) break;
+                            for (int i = 0; i < n; i++) sb.Append(buf[i]);
+                            Trace.WriteLine($"Reading...{s.Position}/{s.Length}");
+                            if (CHBdebugMode.Checked && s.Position > 1000000) break;
+                        }
+                        data = sb.ToString();//.Replace("\r\n"," ");
+                        if (CHBreplaceWithEmptyExceptChinese.Checked)
+                        {
+                            CHBreplaceWithEmptyExceptChinese.Enabled = false;
+                            Trace.WriteLine("Replacing with Empty except Chinese...");
+                            sb.Clear();
+                            bool isSpace = false;
+                            foreach (var c in data)
+                            {
+                                if (IsChinese(c))
+                                {
+                                    sb.Append(c);
+                                    isSpace = false;
+                                }
+                                else if (!isSpace)
+                                {
+                                    sb.Append(' ');
+                                    isSpace = true;
+                                }
+                            }
+                            data = sb.ToString();
+                            Trace.Write("OK");
+                            CHBreplaceWithEmptyExceptChinese.Enabled = true;
+                        }
+                        if (CHBremoveEmpty.Checked)
+                        {
+                            CHBremoveEmpty.Enabled = false;
+                            Trace.WriteLine("Removing empties...");
+                            sb.Clear();
+                            foreach (var c in data)
+                            {
+                                switch (char.GetUnicodeCategory(c))
+                                {
+                                    //case System.Globalization.UnicodeCategory.SpacingCombiningMark:
+                                    //case System.Globalization.UnicodeCategory.Format:
+                                    case System.Globalization.UnicodeCategory.Control:
+                                    case System.Globalization.UnicodeCategory.SpaceSeparator:
+                                        break;
+                                    default: sb.Append(c); break;
+                                }
+                            }
+                            data = sb.ToString();
+                            Trace.Write("OK");
+                            CHBremoveEmpty.Enabled = true;
+                        }
+                    }
+                    Trace.WriteLine($"{data.Length} charactors read");
+                    TXBout.Text = data.Length > 10000 ? data.Remove(10000) : data;
+                    await BuildDataAsync();
+                    CHBsplit_CheckedChanged(null, null);
+                    //BTNsplit_Click(null, null);
+                }
+            }
+        }
+
+        private async void BTNload_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                BTNload.Enabled = false;
+                Trace.Indent();
+                var fd = new OpenFileDialog();
+                fd.FileName = "wiki.sav";
+                if (fd.ShowDialog() == DialogResult.OK)
+                {
+                    using (var s = fd.OpenFile())
+                    {
+                        if (s == null)
+                        {
+                            MessageBox.Show("File not opened");
+                            return;
+                        }
+                        await sa.LoadAsync(s);
+                        s.Close();
+                        Trace.WriteLine("Done");
+                    }
+                }
+            }
+            finally { Trace.Unindent(); BTNload.Enabled = true; }
+        }
+
+        private async void BTNsave_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                BTNsave.Enabled = false;
+                Trace.Indent();
+                var sd = new SaveFileDialog();
+                sd.FileName = "wiki.sav";
+                if (sd.ShowDialog() == DialogResult.OK)
+                {
+                    using (var s = sd.OpenFile())
+                    {
+                        if (s == null)
+                        {
+                            MessageBox.Show("File not opened");
+                            return;
+                        }
+                        await sa.SaveAsync(s);
+                        s.Close();
+                        Trace.WriteLine("Done");
+                    }
+                }
+            }
+            finally { Trace.Unindent(); BTNsave.Enabled = true; }
+        }
+
         private void WriteJoin<T>(StreamWriter writer, string seperator,IEnumerable<T>o,bool writeLine=true)
         {
             bool first = true;
@@ -103,36 +333,6 @@ namespace WikiDataAnalysis
             }
             finally { Trace.Unindent(); }
         }
-        private void BTNsplit_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                int maxWordLength=int.Parse(Microsoft.VisualBasic.Interaction.InputBox("Max Word Length?", "", "4"));
-                Trace.Indent();
-                BTNsplit.Enabled = false;
-                SentenceSplitter ss = new SentenceSplitter(sa);
-                string fileName = "output.txt";
-                var encoding = Encoding.UTF8;
-                using (var writer = new StreamWriter(fileName, false, encoding))
-                {
-                    ss.WordIdentified += (word) => { writer.WriteLine(word); Application.DoEvents(); };
-                    Trace.WriteLine("Splitting...");
-                    var ans =string.IsNullOrWhiteSpace( TXBdata.Text)? ss.Split(sa.S,maxWordLength):ss.Split(TXBdata.Text,maxWordLength);
-                    writer.Close();
-                    Trace.WriteLine($"{ans.Count} words identified.");
-                }
-                if(new FileInfo(fileName).Length<100000)
-                {
-                    using (var reader = new StreamReader(fileName, encoding))
-                    {
-                        TXBout.Text = reader.ReadToEnd();
-                        reader.Close();
-                    }
-                }
-            }
-            catch(Exception error) { TXBout.Text = error.ToString(); }
-            finally { Trace.Unindent(); BTNsplit.Enabled = true; }
-        }
 
         private void Form1_Shown(object sender, EventArgs e)
         {
@@ -158,43 +358,14 @@ namespace WikiDataAnalysis
             //System.Windows.Forms.MessageBox.Show($"{tl.IsThreadSafe} {Trace.UseGlobalLock}");
             //Trace.UseGlobalLock = true;
         }
-
-        private async void TXBdata_MouseDoubleClick(object sender, MouseEventArgs e)
+        private bool IsChinese(char c)
         {
-            var fd = new OpenFileDialog();
-            if (fd.ShowDialog() == DialogResult.OK)
-            {
-                using (var s = fd.OpenFile())
-                {
-                    if (s == null)
-                    {
-                        MessageBox.Show("File not opened");
-                        return;
-                    }
-                    var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButtons.YesNoCancel);
-                    if (encodingSelected == DialogResult.Cancel) return;
-                    Trace.Assert(encodingSelected == DialogResult.Yes || encodingSelected == DialogResult.No);
-                    using (StreamReader reader = new StreamReader
-                        (s,encodingSelected==DialogResult.Yes? Encoding.UTF8:Encoding.Unicode))
-                    {
-                        Trace.WriteLine( "Reading...");
-                        StringBuilder sb = new StringBuilder();
-                        for(char[] buf=new char[1024*1024]; ;)
-                        {
-                            int n=await reader.ReadAsync(buf, 0, buf.Length);
-                            if (n == 0) break;
-                            for (int i = 0; i < n; i++) sb.Append(buf[i]);
-                            Trace.WriteLine( $"Reading...{s.Position}/{s.Length}");
-                            if (CHBdebugMode.Checked && s.Position > 10000000) break;
-                        }
-                        data = sb.ToString().Replace("\r\n","");
-                    }
-                    Trace.WriteLine( $"{data.Length} charactors read");
-                    BuildData();
-                    //BTNsplit_Click(null, null);
-                }
-            }
+            return '\u4e00' <= c && c <= '\u9fff';
         }
+
+        //private async void TXBdata_MouseDoubleClick(object sender, MouseEventArgs e)
+        //{
+        //}
         string data = "";
         string ListWords(string dataInput)
         {
@@ -287,8 +458,9 @@ namespace WikiDataAnalysis
         //SAM sam;
         //SimpleMethod sm;
         SuffixArray sa;
+        SentenceSplitter ss;
         int counter = 0;
-        private void BuildData()
+        private async Task BuildDataAsync()
         {
             //sam.Initialize();
             //sam.Extend(data);
@@ -298,15 +470,15 @@ namespace WikiDataAnalysis
             {
                 Trace.Indent();
                 Trace.WriteLine("Form1.BuildData");
-                sa.Build(data);
+                await sa.BuildAsync(data);
                 this.Text = $"#{++counter}";
             }
             finally { Trace.Unindent(); }
         }
-        private void TXBdata_TextChanged(object sender, EventArgs e)
-        {
-            data = TXBdata.Text;
-            BuildData();
-        }
+        //private async void TXBdata_TextChanged(object sender, EventArgs e)
+        //{
+        //    data = TXBdata.Text;
+        //    await BuildDataAsync();
+        //}
     }
 }
