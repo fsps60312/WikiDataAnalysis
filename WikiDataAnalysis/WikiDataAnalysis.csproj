@@ -82,6 +82,7 @@
     <Compile Include="SentenceSplitter.cs" />
     <Compile Include="SimpleMethod.cs" />
     <Compile Include="SuffixArray.cs" />
+    <Compile Include="TestCode.cs" />
     <Compile Include="Utils.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -184,46 +184,36 @@ namespace WikiDataAnalysis
             }
             finally { Trace.WriteLine("Build Done"); Trace.Unindent(); }
         }
-        async Task<long> ReadNumberAsync(System.IO.Stream stream)
-        {
-            byte[] buffer = new byte[8];
-            Trace.Assert(await stream.ReadAsync(buffer, 0, buffer.Length) == buffer.Length);
-            return BitConverter.ToInt64(buffer, 0);
-        }
-        async Task WriteNumberAsync(System.IO.Stream stream,long v)
-        {
-            var buffer = BitConverter.GetBytes(v);
-            await stream.WriteAsync(buffer, 0, buffer.Length);
-        }
         public async Task LoadAsync(System.IO.Stream fileStream)
         {
             try
             {
                 Trace.Indent();
                 Trace.WriteLine("Loading...");
-                S = null;
-                sa = null;
-                rank = null;
-                height = null;
-                int n = (int)await ReadNumberAsync(fileStream);
-                Trace.WriteLine("Reading S data...");
+                await Task.Run(() =>
                 {
-                    var data = new byte[await ReadNumberAsync(fileStream)];
-                    int i = 0;
-                    while (i < data.Length) i += await fileStream.ReadAsync(data, i, data.Length - i);
-                    Trace.WriteLine("Converting S from UTF8...");
-                    S = Encoding.UTF8.GetString(data);
-                }
-                Trace.WriteLine("Reading SA data...");
-                sa = new List<int>();
-                for (int i = 0; i < S.Length; i++) sa.Add((int)await ReadNumberAsync(fileStream));
-                Trace.WriteLine("Reading HEIGHT data...");
-                height = new List<int>();
-                for (int i = 0; i < S.Length; i++) height.Add((int)await ReadNumberAsync(fileStream));
+                    using (System.IO.BinaryReader reader = new System.IO.BinaryReader(fileStream))
+                    {
+                        S = null;
+                        sa = null;
+                        rank = null;
+                        height = null;
+                        Trace.WriteLine("Reading S data...");
+                        S = reader.ReadString();
+                        Trace.WriteLine("Reading SA data...");
+                        sa = new List<int>();
+                        for (int i = 0; i < S.Length; i++) sa.Add((int)reader.ReadInt64());
+                        Trace.WriteLine("Reading HEIGHT data...");
+                        height = new List<int>();
+                        for (int i = 0; i < S.Length; i++) height.Add((int)reader.ReadInt64());
+                        reader.Close();
+                    }
+                });
                 Trace.WriteLine("Rebuilding RANK data...");
                 rank = new List<int>();
                 rank.Resize(S.Length, 0);
                 for (int i = 0; i < S.Length; i++) rank[sa[i]] = i;
+                IsBuilt = true;
                 Trace.WriteLine("Done.");
             }
             catch (Exception error) { Trace.WriteLine(error); }
@@ -235,21 +225,24 @@ namespace WikiDataAnalysis
             {
                 Trace.Indent();
                 Trace.WriteLine("Saving...");
-                await WriteNumberAsync(fileStream, S.Length);
-                Trace.WriteLine("Converting S to UTF8...");
-                var data = Encoding.UTF8.GetBytes(S);
-                Trace.WriteLine("Writing S data...");
-                Trace.Assert(data.LongLength <= int.MaxValue);
-                await WriteNumberAsync(fileStream, data.Length);
-                await fileStream.WriteAsync(data, 0, data.Length);
-                Trace.WriteLine("Writing SA data...");
-                for (int i = 0; i < S.Length; i++) await WriteNumberAsync(fileStream, SA[i]);
-                Trace.WriteLine("Writing HEIGHT data...");
-                for (int i = 0; i < S.Length; i++) await WriteNumberAsync(fileStream, HEIGHT[i]);
+                await Task.Run(() =>
+                {
+                    using (System.IO.BinaryWriter writer = new System.IO.BinaryWriter(fileStream))
+                    {
+                        Trace.WriteLine("Writing S data...");
+                        writer.Write(S);
+                        Trace.WriteLine("Writing SA data...");
+                        for (int i = 0; i < S.Length; i++) writer.Write((long)SA[i]);
+                        Trace.WriteLine("Writing HEIGHT data...");
+                        for (int i = 0; i < S.Length; i++) writer.Write((long)HEIGHT[i]);
+                        writer.Close();
+                    }
+                });
                 Trace.WriteLine("Done.");
             }
             catch (Exception error) { Trace.WriteLine(error); }
             finally { Trace.WriteLine("Saved."); Trace.Unindent(); }
         }
+        public List<FPLtype> FPL = null;
     }
 }

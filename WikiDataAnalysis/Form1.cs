@@ -16,17 +16,25 @@ namespace WikiDataAnalysis
     public partial class Form1 : Form
     {
         MyTableLayoutPanel TLPmain = new MyTableLayoutPanel(1, 3, "P", "P2P2P"),TLPtop=new MyTableLayoutPanel(2,1,"P2P","P");
-        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(1, 9, "P", "PPPPPPPPP") {Dock=DockStyle.Top};
+        MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(1, 13, "P", "PPPPPPPPPAPPP") {Dock=DockStyle.Top};
         MyTextBox TXBin = new MyTextBox(true), TXBout = new MyTextBox(true),TXBdata=new MyTextBox(true);
         MyButton BTNexportSA=new MyButton("Export SA");
         MyButton BTNsave = new MyButton("Save SA"), BTNload = new MyButton("Load SA"),BTNnew=new MyButton("New data");
         MyCheckBox
             CHBdebugMode = new MyCheckBox("Debug Mode") { Checked = true },
             CHBreplaceWithEmptyExceptChinese = new MyCheckBox("Replace with Empty except Chinese") { Checked = true },
-            CHBremoveEmpty = new MyCheckBox("Remove Empty") { Checked = false },
-            CHBsplit = new MyCheckBox("Split") { Checked = true },
-            CHBbems = new MyCheckBox("BEMS") { Checked = true };
-        ComboBox CBmethod = new ComboBox {Dock=DockStyle.Fill, Font = new Font("微軟正黑體", 15)};
+            CHBremoveEmpty = new MyCheckBox("Remove Empty") { Checked = true },
+            CHBsplit = new MyCheckBox("Split") { Checked = false },
+            CHBbems = new MyCheckBox("BEMS") { Checked = false },
+            CHBlogPortion = new MyCheckBox("Log Portion") { Checked = true };
+        ComboBox CBmethod = new ComboBox { Dock = DockStyle.Fill, Font = new Font("微軟正黑體", 15) };
+        ComboBox CBprobType = new ComboBox { Dock = DockStyle.Fill, Font = new Font("微軟正黑體", 10) };
+        MyInputField IFdata = new MyInputField();
+        int maxWordLength = 4;
+        double bemsRatio = 1;
+        double probRatio = 1;
+        SentenceSplitter.ProbTypeEnum probType = SentenceSplitter.ProbTypeEnum.CdL;
+        string txbDataFileContent = null;
         public Form1()
         {
             Trace.UseGlobalLock = false;
@@ -45,21 +53,40 @@ namespace WikiDataAnalysis
                         CBmethod.Items.Add("Count Word");
                         CBmethod.Items.Add("List Words");
                     }
-                    TLPctrl.Controls.Add(CHBdebugMode, 0, row++);
-                    TLPctrl.Controls.Add(CHBreplaceWithEmptyExceptChinese, 0, row++);
-                    TLPctrl.Controls.Add(CHBremoveEmpty, 0, row++);
                     TLPctrl.Controls.Add(BTNexportSA, 0, row++);
                     TLPctrl.Controls.Add(BTNsave, 0, row++);
                     TLPctrl.Controls.Add(BTNload, 0, row++);
+                    TLPctrl.Controls.Add(BTNnew, 0, row++);
+                    TLPctrl.Controls.Add(CHBdebugMode, 0, row++);
+                    TLPctrl.Controls.Add(CHBreplaceWithEmptyExceptChinese, 0, row++);
+                    TLPctrl.Controls.Add(CHBremoveEmpty, 0, row++);
+                    TLPctrl.Controls.Add(CHBlogPortion, 0, row++);
+                    TLPctrl.Controls.Add(IFdata, 0, row++);
+                    {
+                        IFdata.AddField("maxWordLength", maxWordLength.ToString());
+                        IFdata.AddField("bemsRatio", bemsRatio.ToString());
+                        IFdata.AddField("probRatio", probRatio.ToString());
+                    }
+                    TLPctrl.Controls.Add(CBprobType, 0, row++);
+                    {
+                        foreach (var s in SentenceSplitter.probTypeString.Split('\n'))
+                        {
+                            CBprobType.Items.Add(s);
+                        }
+                        CBprobType.SelectedValueChanged += (sender, e) =>
+                        {
+                            probType = Enum.GetValues(typeof(SentenceSplitter.ProbTypeEnum)).Cast<SentenceSplitter.ProbTypeEnum>().FirstOrDefault(v => CBprobType.Text.IndexOf($"probType == ProbTypeEnum.{v}") != -1);
+                            //MessageBox.Show(probType.ToString());
+                        };
+                    }
                     TLPctrl.Controls.Add(CHBsplit, 0, row++);
                     TLPctrl.Controls.Add(CHBbems, 0, row++);
-                    TLPctrl.Controls.Add(BTNnew, 0, row++);
                 }
             }
             TLPmain.Controls.Add(TXBout, 0, 1);
             TLPmain.Controls.Add(TXBdata, 0, 2);
             //TXBdata.TextChanged += TXBdata_TextChanged;
-            //TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
+            TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
             TXBin.TextChanged += TXBin_TextChanged;
             BTNexportSA.Click += BTNexportSA_Click;
             CHBsplit.CheckedChanged += CHBsplit_CheckedChanged;
@@ -76,6 +103,93 @@ namespace WikiDataAnalysis
             sa = new SuffixArray();
             ss = new SentenceSplitter(sa);
             this.Shown += Form1_Shown;
+        }
+        
+        private async void TXBdata_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            try
+            {
+                Trace.Indent();
+                var fd = new OpenFileDialog();
+                if (fd.ShowDialog() == DialogResult.OK)
+                {
+                    using (var s = fd.OpenFile())
+                    {
+                        if (s == null)
+                        {
+                            MessageBox.Show("File not opened");
+                            return;
+                        }
+                        var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButtons.YesNoCancel);
+                        if (encodingSelected == DialogResult.Cancel) return;
+                        Trace.Assert(encodingSelected == DialogResult.Yes || encodingSelected == DialogResult.No);
+                        using (StreamReader reader = new StreamReader
+                            (s, encodingSelected == DialogResult.Yes ? Encoding.UTF8 : Encoding.Unicode))
+                        {
+                            Trace.WriteLine("Reading...");
+                            StringBuilder sb = new StringBuilder();
+                            for (char[] buf = new char[1024 * 1024]; ;)
+                            {
+                                int n = await reader.ReadAsync(buf, 0, buf.Length);
+                                if (n == 0) break;
+                                for (int i = 0; i < n; i++) sb.Append(buf[i]);
+                                Trace.WriteLine($"Reading...{s.Position}/{s.Length}");
+                                if (CHBdebugMode.Checked && s.Position > 1000000) break;
+                            }
+                            data = sb.ToString();//.Replace("\r\n"," ");
+                            if (CHBreplaceWithEmptyExceptChinese.Checked)
+                            {
+                                CHBreplaceWithEmptyExceptChinese.Enabled = false;
+                                Trace.WriteLine("Replacing with Empty except Chinese...");
+                                sb.Clear();
+                                bool isSpace = false;
+                                foreach (var c in data)
+                                {
+                                    if (IsChinese(c))
+                                    {
+                                        sb.Append(c);
+                                        isSpace = false;
+                                    }
+                                    else if (!isSpace)
+                                    {
+                                        sb.Append(' ');
+                                        isSpace = true;
+                                    }
+                                }
+                                data = sb.ToString();
+                                Trace.Write("OK");
+                                CHBreplaceWithEmptyExceptChinese.Enabled = true;
+                            }
+                            if (CHBremoveEmpty.Checked)
+                            {
+                                CHBremoveEmpty.Enabled = false;
+                                Trace.WriteLine("Removing empties...");
+                                sb.Clear();
+                                foreach (var c in data)
+                                {
+                                    switch (char.GetUnicodeCategory(c))
+                                    {
+                                        //case System.Globalization.UnicodeCategory.SpacingCombiningMark:
+                                        //case System.Globalization.UnicodeCategory.Format:
+                                        case System.Globalization.UnicodeCategory.Control:
+                                        case System.Globalization.UnicodeCategory.SpaceSeparator:
+                                            break;
+                                        default: sb.Append(c); break;
+                                    }
+                                }
+                                data = sb.ToString();
+                                Trace.Write("OK");
+                                CHBremoveEmpty.Enabled = true;
+                            }
+                        }
+                        Trace.WriteLine($"{data.Length} charactors read...");
+                        TXBout.Text = data.Length > 10000 ? data.Remove(10000) : data;
+                        txbDataFileContent = data;
+                        Trace.Write("OK");
+                    }
+                }
+            }
+            finally { Trace.Unindent(); }
         }
 
         private async void CHBbems_CheckedChanged(object sender, EventArgs e)
@@ -112,7 +226,9 @@ namespace WikiDataAnalysis
             {
                 if (CHBsplit.Checked)
                 {
-                    maxWordLength = int.Parse(Microsoft.VisualBasic.Interaction.InputBox("Max Word Length?", "", "4"));
+                    maxWordLength = int.Parse(IFdata.GetField("maxWordLength"));
+                    probRatio = double.Parse(IFdata.GetField("probRatio"));
+                    bemsRatio = double.Parse(IFdata.GetField("bemsRatio"));
                     if (sa.IsBuilt)
                     {
                         await PerformSplit();
@@ -122,7 +238,6 @@ namespace WikiDataAnalysis
             }
             catch(Exception error) { TXBout.Text = error.ToString(); }
         }
-        int maxWordLength = 4;
         private async Task PerformSplit()
         {
             try
@@ -133,19 +248,28 @@ namespace WikiDataAnalysis
                 var encoding = Encoding.UTF8;
                 using (var writer = new StreamWriter(fileName, false, encoding))
                 {
-                    ss.WordIdentified += (word) => { writer.WriteLine(word); Application.DoEvents(); };
+                    TXBout.Clear();
+                    var d = new SentenceSplitter.WordIdentifiedEventHandler((word) =>
+                    {
+                        writer.WriteLine(word);
+                        if (TXBout.TextLength < 100000)
+                        {
+                            TXBout.AppendText($"{word}\r\n");
+                            if (TXBout.TextLength >= 100000) TXBout.AppendText("......(Cut)\r\n");
+                        }
+                    });
+                    ss.WordIdentified += d;
                     Trace.WriteLine("Splitting...");
-                    var ans = string.IsNullOrWhiteSpace(TXBdata.Text) ? await ss.SplitAsync(sa.S, maxWordLength) : await ss.SplitAsync(TXBdata.Text, maxWordLength);
+                    var ans = await ss.SplitAsync(
+                        string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : sa.S) : TXBdata.Text,
+                        maxWordLength,
+                        probRatio,
+                        bemsRatio,
+                        probType,
+                        CHBlogPortion.Checked);
+                    ss.WordIdentified -= d;
                     writer.Close();
                     Trace.WriteLine($"{ans.Count} words identified.");
-                }
-                if (new FileInfo(fileName).Length < 100000)
-                {
-                    using (var reader = new StreamReader(fileName, encoding))
-                    {
-                        TXBout.Text = reader.ReadToEnd();
-                        reader.Close();
-                    }
                 }
             }
             catch (Exception error) { TXBout.Text = error.ToString(); }
@@ -334,8 +458,9 @@ namespace WikiDataAnalysis
             finally { Trace.Unindent(); }
         }
 
-        private void Form1_Shown(object sender, EventArgs e)
+        private async void Form1_Shown(object sender, EventArgs e)
         {
+            await TestCode.Run();
             GenerateOutputWindow();
             this.Text = "Ready";
         }
