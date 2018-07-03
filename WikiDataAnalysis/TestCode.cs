@@ -11,7 +11,11 @@ namespace WikiDataAnalysis
     {
         public static async Task Run()
         {
-            //await Run1();
+            //await Run2();
+        }
+        static async Task Run2()
+        {
+            MessageBox.Show(Math.Log(double.Epsilon).ToString());
         }
         static async Task Run1()
         {

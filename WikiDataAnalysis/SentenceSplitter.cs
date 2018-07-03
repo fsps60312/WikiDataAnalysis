@@ -9,7 +9,7 @@ namespace WikiDataAnalysis
 {
     class FPLtype
     {
-        public double mean, stderr,sqrtSum;
+        public double mean, stderr,sqrtSum,logSum;
     }
     class SentenceSplitter
     {
@@ -65,6 +65,7 @@ namespace WikiDataAnalysis
                 int j = n - 2;
                 long sp2 = n;//sum of power 2
                 double sp0_5 = n;//sum of power 0.5
+                double slog = n * Math.Log(2);
                 for (int i = n; i >=1; i--)
                 {
                     while (j >=0 && h[j].Item1 >= i)
@@ -77,12 +78,15 @@ namespace WikiDataAnalysis
                         sp0_5 -= Math.Sqrt(k - l);
                         sp0_5 -= Math.Sqrt(r - k);
                         sp0_5 += Math.Sqrt(r - l);
+                        slog -= Math.Log(k - l + 1);
+                        slog -= Math.Log(r - k + 1);
+                        slog += Math.Log(r - l + 1);
                         linkl[r] = l;
                         linkr[l] = r;
                         --j;//j+1 is the num of splittings
                     }
                     double u = (double)n / (j + 2);
-                    ans[i] = new FPLtype { mean = u, stderr = Math.Sqrt((double)sp2 / (j + 2) - u * u), sqrtSum = sp0_5 };
+                    ans[i] = new FPLtype { mean = u, stderr = Math.Sqrt((double)sp2 / (j + 2) - u * u), sqrtSum = sp0_5, logSum = slog };
                 }
                 Trace.Write("OK");
                 //System.Windows.Forms.MessageBox.Show(string.Join(", ", ans.GetRange(0, 20)));
@@ -137,14 +141,16 @@ namespace WikiDataAnalysis
         }
         public bool IsBuilt { get; private set; } = false;
         public List<string> SplittedWords { get; private set; }
-        public enum ProbTypeEnum { CdL,CdM,CxLdM,CmMdSTDE,sqCdS,sqCxLdS}
+        public enum ProbTypeEnum { CdL, CdM, CxLdM, CmMdSTDE, sqCdS, sqCxLdS, lnCdS, lnCxLdS }
         public const string probTypeString =
-                                   "probType == ProbTypeEnum.CdL ? Math.Log((double)Math.Max(Count(motherSA, s.Substring(i, l)), 1) / (motherSA.S.Length - l + 1)) :                                            \n" +
-                                   "probType == ProbTypeEnum.CdM ? Math.Log((double)Math.Max(Count(motherSA, s.Substring(i, l)), 1) / fpl[l].mean) :                                                            \n" +
-                                   "probType == ProbTypeEnum.CxLdM ? Math.Log((double)Math.Max(Count(motherSA, s.Substring(i, l)), 1) / fpl[l].mean) * l :                                                      \n" +
-                                   "probType == ProbTypeEnum.CmMdSTDE ? (Count(motherSA, s.Substring(i, l)) - fpl[l].mean) / Math.Pow(fpl[l].stderr, 1.0) :                                                     \n" +
-                                   "probType == ProbTypeEnum.sqCdS ? Math.Log((double)Math.Sqrt(Math.Max(Count(motherSA, s.Substring(i, l)), 1)) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) :      \n" +
-                                   "probType == ProbTypeEnum.sqCxLdS ? Math.Log((double)Math.Sqrt(Math.Max(Count(motherSA, s.Substring(i, l)), 1)) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) * l :\n";
+                                   "probType == ProbTypeEnum.CdL ? Math.Log(wordCount / (motherSA.S.Length - l + 1)) :                                                                            \n" +
+                                   "probType == ProbTypeEnum.CdM? Math.Log(wordCount / fpl[l].mean) :                                                                                             \n" +
+                                   "probType == ProbTypeEnum.CxLdM? Math.Log(wordCount / fpl[l].mean) * l :                                                                                       \n" +
+                                   "probType == ProbTypeEnum.CmMdSTDE? (Count(motherSA, s.Substring(i, l)) - fpl[l].mean) / Math.Pow(fpl[l].stderr, 1.0) :                                        \n" +
+                                   "probType == ProbTypeEnum.sqCdS? Math.Log((double) Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) :                              \n" +
+                                   "probType == ProbTypeEnum.sqCxLdS? Math.Log((double) Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) * l :                        \n" +
+                                   "probType == ProbTypeEnum.lnCdS? Math.Log(Math.Max(double.Epsilon, (double) Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) :      \n" +
+                                   "probType == ProbTypeEnum.lnCxLdS? Math.Log(Math.Max(double.Epsilon, (double) Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) * l :\n";
         List<string> Split(string s, int maxWordLength, BEMSmodel bm,double probRatio,double bemsRatio, ProbTypeEnum probType,bool logPortion)
         {
             try
@@ -167,13 +173,20 @@ namespace WikiDataAnalysis
                 {
                     Parallel.For(1, Math.Min(n - i, maxWordLength) + 1, (l) =>
                            {
+                               double wordCount = Count(motherSA, s.Substring(i, l));
+                               if(wordCount==0)
+                               {
+                                   wordCount = Math.Pow(((fpl[1].sqrtSum / (motherSA.S.Length / fpl[1].mean))) / motherSA.S.Length, l);
+                               }
                                double probLog =
-                                   probType == ProbTypeEnum.CdL ? Math.Log((double)Math.Max(Count(motherSA, s.Substring(i, l)), 1) / (motherSA.S.Length - l + 1)) :
-                                   probType == ProbTypeEnum.CdM ? Math.Log((double)Math.Max(Count(motherSA, s.Substring(i, l)), 1) / fpl[l].mean) :
-                                   probType == ProbTypeEnum.CxLdM ? Math.Log((double)Math.Max(Count(motherSA, s.Substring(i, l)), 1) / fpl[l].mean) * l :
+                                   probType == ProbTypeEnum.CdL ? Math.Log(wordCount / (motherSA.S.Length - l + 1)) :
+                                   probType == ProbTypeEnum.CdM ? Math.Log(wordCount / fpl[l].mean) :
+                                   probType == ProbTypeEnum.CxLdM ? Math.Log(wordCount / fpl[l].mean) * l :
                                    probType == ProbTypeEnum.CmMdSTDE ? (Count(motherSA, s.Substring(i, l)) - fpl[l].mean) / Math.Pow(fpl[l].stderr, 1.0) :
-                                   probType == ProbTypeEnum.sqCdS ? Math.Log((double)Math.Sqrt(Math.Max(Count(motherSA, s.Substring(i, l)), 1)) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) :
-                                   probType == ProbTypeEnum.sqCxLdS ? Math.Log((double)Math.Sqrt(Math.Max(Count(motherSA, s.Substring(i, l)), 1)) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) * l :
+                                   probType == ProbTypeEnum.sqCdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) :
+                                   probType == ProbTypeEnum.sqCxLdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) * l :
+                                   probType == ProbTypeEnum.lnCdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) :
+                                   probType == ProbTypeEnum.lnCxLdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) * l :
                                    throw new Exception($"Unknown probType: {probType}"); // (Count(sa, i, l) - fpl[l].Item1) / Math.Pow(fpl[l].Item2, 1.0);
                                double bemsLog = bm.Query(motherSA.S.Substring(i, l));
                                probLog = logPortion ? probLog * probRatio + bemsLog * bemsRatio : Math.Log(Math.Exp(probLog) * probRatio + Math.Exp(bemsLog) * bemsRatio);

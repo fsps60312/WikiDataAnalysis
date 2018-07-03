@@ -28,6 +28,18 @@ namespace DownloadWikiData
             //Console.WriteLine($"TagEnd:   {tagName}");
             for (int i = tags.Count - 1; ; i--)
             {
+                if(i==-1)
+                {
+                    Console.WriteLine($"Extra TagEnd: {tagName}");
+                    Console.WriteLine("==================================");
+                    Console.WriteLine($"len={webContent.Length},idx={contentIndex}");
+                    Console.WriteLine("==================================");
+                    Console.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
+                    Console.WriteLine("==================================");
+                    Console.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
+                    Console.WriteLine("==================================");
+                    return;
+                }
                 if (tags[i].name == tagName)
                 {
                     tags.RemoveRange(i, tags.Count - i);
@@ -44,7 +56,7 @@ namespace DownloadWikiData
                 if (c == '\\')
                 {
                     s += c;
-                    s += (c = Read());
+                    //s += (c = Read());//in HTML should use &quot;
                 }
                 else if (c == '"')
                 {
@@ -64,7 +76,7 @@ namespace DownloadWikiData
                 if (c == '\\')
                 {
                     s += c;
-                    s += (c = Read());
+                    //s += (c = Read());//in HTML should use &quot;
                 }
                 else if (c == '\'')
                 {

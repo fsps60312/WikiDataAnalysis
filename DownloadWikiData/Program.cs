@@ -21,7 +21,7 @@ namespace DownloadWikiData
             var stream = new MemoryStream();
             BZip2.Decompress(await client.GetStreamAsync(titleListUrl), stream, true);
             Console.WriteLine("Done");
-            using (var f = new FileStream("tmp.txt", FileMode.OpenOrCreate))
+            using (var f = new FileStream("tmp.txt", FileMode.Create))
             {
                 var b = stream.ToArray();
                 f.Write(b, 0, b.Length);
@@ -43,64 +43,72 @@ namespace DownloadWikiData
         static async void Run()
         {
             var s = await GetTitleList();
-            using (StreamWriter writer = new StreamWriter("output.txt", true, Encoding.UTF8))
+            using (StreamWriter writer = new StreamWriter("output.txt", false, Encoding.UTF8))
             {
-                int progress = 0;
-                int iterationCount = s.Count;// 1000;
-                //System.Threading.SemaphoreSlim semaphore = new System.Threading.SemaphoreSlim(10, 10);
-                var po = new ParallelOptions();
-                po.MaxDegreeOfParallelism = 10;
-                Parallel.For(0, iterationCount, po, _ =>
-                 {
-                    //int i = rand.Next(s.Count);
-                    int i = _;
-                     var url = curlUrl + System.Net.WebUtility.UrlEncode(s[i].Replace(' ', '_'));
-                     index_Retry:;
-                     Console.WriteLine($"{System.Threading.Interlocked.Increment(ref progress)}/{iterationCount}\t{url}");
-                     Console.Write($"Downloading...".PadRight(Console.WindowWidth - 1, ' ') + "\r");
-                     try
-                     {
-                        //semaphore.Wait();
-                        string webContent;
-                         using (HttpClient client = new HttpClient())
-                         {
-                             webContent = client.GetStringAsync(url).Result;
-                         }
-                         Console.Write($"Processing... ({webContent.Length})".PadRight(Console.WindowWidth - 1, ' ') + "\r");
-                         webContent = new Runner().Run(webContent);
-                         Console.Write($"Writing... ({webContent.Length})".PadRight(Console.WindowWidth - 1, ' ') + "\r");
-                         lock (writer)
-                         {
-                             writer.WriteLine($"\r\n===================={s[i]}====================\r\n");
-                             writer.WriteLine(webContent);
-                         }
-                         Console.Write($"Done ({webContent.Length})".PadRight(Console.WindowWidth - 1, ' ') + "\r");
-                     }
-                     catch (HttpRequestException error)
-                     {
-                         if (error.Message.IndexOf("404") == -1)
-                         {
-                             if (error.Message.IndexOf("429") == -1)
-                             {
-                                 Console.WriteLine(error);
-                                 using (StreamWriter w = new StreamWriter("error.txt", true, Encoding.UTF8))
-                                 {
-                                     w.WriteLine();
-                                     w.WriteLine(s[i]);
-                                     w.WriteLine(url);
-                                     w.WriteLine(error);
-                                     w.Close();
-                                 }
-                             }
-                             System.Threading.Interlocked.Decrement(ref progress);
-                             System.Threading.Thread.Sleep(1000);
-                             goto index_Retry;
-                         }
-                     }
-                     catch (Exception error) { Console.WriteLine(error); }
-                    //finally { lock (semaphore) semaphore.Release(); }
-                    //await Task.Delay(1000);
-                });
+                using (StreamWriter log = new StreamWriter("log.txt", false, Encoding.UTF8))
+                {
+                    int progress = 0;
+                    int iterationCount = s.Count;// 1000;
+                                                 //System.Threading.SemaphoreSlim semaphore = new System.Threading.SemaphoreSlim(10, 10);
+                    var po = new ParallelOptions();
+                    po.MaxDegreeOfParallelism = 15;
+                    Parallel.For(0, iterationCount, po, _ =>
+                    {
+                        //int i = rand.Next(s.Count);
+                        int i = _;
+                        var url = curlUrl + System.Net.WebUtility.UrlEncode(s[i].Replace(' ', '_'));
+                        index_Retry:;
+                        {
+                            var p = System.Threading.Interlocked.Increment(ref progress);
+                            Console.WriteLine($"{p}/{iterationCount}\t{url}");
+                            lock (log) log.WriteLine($"{p}/{iterationCount}\t{url}");
+                        }
+                        Console.Write($"Downloading...".PadRight(Console.WindowWidth - 1, ' ') + "\r");
+                        try
+                        {
+                            //semaphore.Wait();
+                            string webContent;
+                            using (HttpClient client = new HttpClient())
+                            {
+                                webContent = client.GetStringAsync(url).Result;
+                            }
+                            Console.Write($"Processing... ({webContent.Length})".PadRight(Console.WindowWidth - 1, ' ') + "\r");
+                            webContent = new Runner().Run(webContent);
+                            Console.Write($"Writing... ({webContent.Length})".PadRight(Console.WindowWidth - 1, ' ') + "\r");
+                            lock (writer)
+                            {
+                                writer.WriteLine($"\r\n===================={s[i]}====================\r\n");
+                                writer.WriteLine(webContent);
+                            }
+                            Console.Write($"Done ({webContent.Length})".PadRight(Console.WindowWidth - 1, ' ') + "\r");
+                        }
+                        catch (HttpRequestException error)
+                        {
+                            if (error.Message.IndexOf("404") == -1)
+                            {
+                                if (error.Message.IndexOf("429") == -1)
+                                {
+                                    Console.WriteLine(error);
+                                    using (StreamWriter w = new StreamWriter("error.txt", true, Encoding.UTF8))
+                                    {
+                                        w.WriteLine();
+                                        w.WriteLine(s[i]);
+                                        w.WriteLine(url);
+                                        w.WriteLine(error);
+                                        w.Close();
+                                    }
+                                }
+                                System.Threading.Interlocked.Decrement(ref progress);
+                                System.Threading.Thread.Sleep(1000);
+                                goto index_Retry;
+                            }
+                        }
+                        catch (Exception error) { Console.WriteLine(error); }
+                        //finally { lock (semaphore) semaphore.Release(); }
+                        //await Task.Delay(1000);
+                    });
+                    log.Close();
+                }
                 writer.Close();
             }
             Console.WriteLine("All Done.");
@@ -134,7 +142,7 @@ namespace DownloadWikiData
         }
         static void Main(string[] args)
         {
-            Run2();
+            Run();
             Console.ReadLine();
         }
     }

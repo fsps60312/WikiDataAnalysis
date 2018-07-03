@@ -258,18 +258,22 @@ namespace WikiDataAnalysis
                             if (TXBout.TextLength >= 100000) TXBout.AppendText("......(Cut)\r\n");
                         }
                     });
-                    ss.WordIdentified += d;
-                    Trace.WriteLine("Splitting...");
-                    var ans = await ss.SplitAsync(
-                        string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : sa.S) : TXBdata.Text,
-                        maxWordLength,
-                        probRatio,
-                        bemsRatio,
-                        probType,
-                        CHBlogPortion.Checked);
-                    ss.WordIdentified -= d;
+                    try
+                    {
+                        ss.WordIdentified += d;
+                        Trace.WriteLine("Splitting...");
+                        var ans = await ss.SplitAsync(
+                            string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : sa.S) : TXBdata.Text,
+                            maxWordLength,
+                            probRatio,
+                            bemsRatio,
+                            probType,
+                            CHBlogPortion.Checked);
+                        Trace.WriteLine($"{ans.Count} words identified.");
+                    }
+                    catch (Exception error) { TXBout.Text = error.ToString(); }
+                    finally { ss.WordIdentified -= d; }
                     writer.Close();
-                    Trace.WriteLine($"{ans.Count} words identified.");
                 }
             }
             catch (Exception error) { TXBout.Text = error.ToString(); }
@@ -460,6 +464,15 @@ namespace WikiDataAnalysis
 
         private async void Form1_Shown(object sender, EventArgs e)
         {
+            //TextBox textBox = new TextBox();//不知道TextBox的去Google圖片
+            //this.Controls.Add(textBox);//把textBox顯示出來
+            //Parallel.For(0, 100, i =>//使用多個Thread，從0到99平行跑i，全部跑完後再繼續
+            //{
+            //    System.Threading.Thread.Sleep(1000);//等待1000毫秒
+            //    textBox.Invoke(new Action(() => textBox.AppendText(i.ToString() + "\r\n")));
+            //    //將AppendText的工作交給textBox，等textBox反應過來並做完該工作再繼續
+            //    //不Invoke的話textBox可能會因為被多個Thread同時修改導致undefined behavior
+            //});
             await TestCode.Run();
             GenerateOutputWindow();
             this.Text = "Ready";

@@ -14,7 +14,7 @@ namespace WikiDataAnalysis
         public enum BEMS { B,E,M,S};
         const string dicUrl = "https://raw.githubusercontent.com/fxsjy/jieba/master/jieba/finalseg/prob_emit.py";
         public Dictionary<char, Dictionary<char, double>> dic { get; private set; }
-        double defaultMinValue;
+        double defaultMinValue=double.NegativeInfinity;
         public async Task DownloadDictionaryAsync()
         {
             try
@@ -33,9 +33,16 @@ namespace WikiDataAnalysis
             }
             finally { Trace.Unindent(); }
         }
-        public double Query(BEMS b,char c)
+        public double Query(BEMS b, char c)
         {
-            var d=dic[b == BEMS.B ? 'B' : b == BEMS.E ? 'E' : b == BEMS.M ? 'M' : 'S'];
+            return QueryNaive(b, c);
+            double v = Math.Exp(QueryNaive(b, c));
+            double sum = Math.Exp(QueryNaive(BEMS.B, c)) + Math.Exp(QueryNaive(BEMS.E, c)) + Math.Exp(QueryNaive(BEMS.M, c)) + Math.Exp(QueryNaive(BEMS.S, c));
+            return Math.Log(sum == 0 ? 0.25 : v / sum);
+        }
+        public double QueryNaive(BEMS b, char c)
+        {
+            var d = dic[b == BEMS.B ? 'B' : b == BEMS.E ? 'E' : b == BEMS.M ? 'M' : 'S'];
             if (d.ContainsKey(c)) return d[c];
             return defaultMinValue;
         }
