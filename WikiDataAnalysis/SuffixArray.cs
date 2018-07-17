@@ -184,6 +184,56 @@ namespace WikiDataAnalysis
             }
             finally { Trace.WriteLine("Build Done"); Trace.Unindent(); }
         }
+        public async Task ListFrequentWords(int threshold, Func<string, Task> action)
+        {
+            Trace.WriteLine("ListFrequentWords(int threshold, Func<string, Task> action)...");
+            try
+            {
+                Trace.Indent();
+                Trace.Assert(threshold >= 2, $"threshold, which is {threshold}, must >= 2");
+                int n = S.Length;
+                Trace.WriteLine("Copying height data...");
+                List<Tuple<int, int>> h = new List<Tuple<int, int>>();
+                for (int i = 1; i < n; i++) h.Add(new Tuple<int, int>(HEIGHT[i], i));
+                Trace.WriteLine("Sorting...");
+                //DistributedSort(h, (a, b) => a.Item1.CompareTo(b.Item1));
+                h.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+                var changes = new List<Tuple<int, int, int>>();
+                {
+                    Trace.WriteLine("Creating linked list...");
+                    int[] linkl = new int[n + 1], linkr = new int[n + 1];
+                    for (int i = 0; i < n; i++)
+                    {
+                        linkl[i + 1] = i;
+                        linkr[i] = i + 1;
+                    }
+                    Trace.WriteLine("Simulate changes...");
+                    int j = n - 2;
+                    for (int gram = n; gram >= 1; gram--)
+                    {
+                        changes.Add(new Tuple<int, int, int>(-1, -1, -1));
+                        while (j >= 0 && h[j].Item1 >= gram)
+                        {
+                            int k = h[j].Item2;
+                            int l = linkl[k], r = linkr[k];
+                            changes.Add(new Tuple<int, int, int>(l, k, r));
+                            linkl[r] = l;
+                            linkr[l] = r;
+                            --j;//j+1 is the num of splittings
+                            if (r - l >= threshold)
+                            {
+                                for (int len = gram; len > Math.Max(HEIGHT[l], r >= n ? 0 : HEIGHT[r]); len--)
+                                {
+                                    await action(S.Substring(SA[l], len));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error) { System.Windows.Forms.MessageBox.Show(error.ToString()); throw; }
+            finally { Trace.Unindent(); }
+        }
         public async Task LoadAsync(System.IO.Stream fileStream)
         {
             try
@@ -198,6 +248,7 @@ namespace WikiDataAnalysis
                         sa = null;
                         rank = null;
                         height = null;
+                        FPL = null;
                         Trace.WriteLine("Reading S data...");
                         S = reader.ReadString();
                         Trace.WriteLine("Reading SA data...");

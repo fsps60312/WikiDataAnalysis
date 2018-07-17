@@ -10,6 +10,7 @@ namespace WikiDataAnalysis
     class FPLtype
     {
         public double mean, stderr,sqrtSum,logSum;
+        public int percent10;
     }
     class SentenceSplitter
     {
@@ -38,6 +39,7 @@ namespace WikiDataAnalysis
         //    }
         //    finally { Trace.Unindent(); }
         //}
+        long Sq(int a) { return (long)a * a; }
         private List<FPLtype>FrequencyPerLength(SuffixArray sa)
         {
             Trace.WriteLine("FrequencyPerLength(SuffixArray sa)...");
@@ -52,46 +54,94 @@ namespace WikiDataAnalysis
                 Trace.WriteLine("Sorting...");
                 //DistributedSort(h, (a, b) => a.Item1.CompareTo(b.Item1));
                 h.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-                Trace.WriteLine("Creating linked list...");
-                int[] linkl = new int[n + 1], linkr = new int[n + 1];
-                for (int i = 0; i < n; i++)
+                List<Tuple<int, int>> changes = new List<Tuple<int, int>>();
                 {
-                    linkl[i + 1] = i;
-                    linkr[i] = i + 1;
+                    Trace.WriteLine("Creating linked list...");
+                    int[] linkl = new int[n + 1], linkr = new int[n + 1];
+                    for (int i = 0; i < n; i++)
+                    {
+                        linkl[i + 1] = i;
+                        linkr[i] = i + 1;
+                    }
+                    Trace.WriteLine("Simulate changes...");
+                    int j = n - 2;
+                    for (int gram = n; gram >= 1; gram--)
+                    {
+                        while (j >= 0 && h[j].Item1 >= gram)
+                        {
+                            int k = h[j].Item2;
+                            int l = linkl[k], r = linkr[k];
+                            changes.Add(new Tuple<int, int>(k - l, r - k));
+                            linkl[r] = l;
+                            linkr[l] = r;
+                            --j;//j+1 is the num of splittings
+                        }
+                        changes.Add(new Tuple<int, int>(-1, j));
+                    }
                 }
-                Trace.WriteLine("Almost finish...");
+                Trace.WriteLine("Building ans...");
                 List<FPLtype> ans = new List<FPLtype>();
                 ans.Resize(n + 1, default(FPLtype));
-                int j = n - 2;
-                long sp2 = n;//sum of power 2
-                double sp0_5 = n;//sum of power 0.5
-                double slog = n * Math.Log(2);
-                for (int i = n; i >=1; i--)
+                //for (int i = 1; i <= n; i++) ans[i] = new FPLtype();
+                Trace.WriteLine("Filling ans...");
                 {
-                    while (j >=0 && h[j].Item1 >= i)
+                    long sp2 = n;//sum of power 2
+                    double sp0_5 = n;//sum of power 0.5
+                    double slog = n * Math.Log(2);
+
+                    int[] cnt = new int[n + 1];
+                    for (int i = 0; i <= n; i++) Trace.Assert(cnt[i] == 0);
+                    int cursor = 1, current_count = cnt[1] = n;
+                    //System.Windows.Forms.MessageBox.Show("pass");
+
+                    for (int gram = n, c = 0; gram >= 1; gram--)
                     {
-                        int k = h[j].Item2;
-                        int l = linkl[k], r = linkr[k];
-                        sp2 -= (k - l) * (k - l);
-                        sp2 -= (r - k) * (r - k);
-                        sp2 += (r - l) * (r - l);
-                        sp0_5 -= Math.Sqrt(k - l);
-                        sp0_5 -= Math.Sqrt(r - k);
-                        sp0_5 += Math.Sqrt(r - l);
-                        slog -= Math.Log(k - l + 1);
-                        slog -= Math.Log(r - k + 1);
-                        slog += Math.Log(r - l + 1);
-                        linkl[r] = l;
-                        linkr[l] = r;
-                        --j;//j+1 is the num of splittings
+                        {
+                            int cc=c;
+                            while(true)
+                            {
+                                var p=changes[cc++];
+                                if(p.Item1==-1)break;
+                                sp2 -= Sq(p.Item1);
+                                sp2 -= Sq(p.Item2);
+                                sp2 += Sq(p.Item1 + p.Item2);
+                                sp0_5 -= Math.Sqrt(p.Item1);
+                                sp0_5 -= Math.Sqrt(p.Item2);
+                                sp0_5 += Math.Sqrt(p.Item1 + p.Item2);
+                                slog -= Math.Log(p.Item1 + 1);
+                                slog -= Math.Log(p.Item2 + 1);
+                                slog += Math.Log(p.Item1 + p.Item2 + 1);
+                                --cnt[p.Item1];if (p.Item1 <= cursor) --current_count;
+                                --cnt[p.Item2];if (p.Item2 <= cursor) --current_count;
+                                ++cnt[p.Item1 + p.Item2];if (p.Item1 + p.Item2 <= cursor) ++current_count;
+                                //Trace.WriteLine($"{p.Item1}\t{p.Item2}");
+                                //Trace.Assert(cnt[p.Item1] >= 0 && cnt[p.Item2] >= 0);
+                            }
+                        }
+                        while (changes[c++].Item1 != -1) ;
+                        int j = changes[c - 1].Item2;
+                        try
+                        {
+                            while (current_count < 0.01 * (j + 2)) current_count += cnt[++cursor];
+                            while (current_count - cnt[cursor] >= 0.01 * (j + 2)) current_count -= cnt[cursor--];
+                        }
+                        catch(Exception error) { System.Windows.Forms.MessageBox.Show($"cursor={cursor}, current_count={current_count}, i={gram}, j={j}, n={n}\r\n"+error.ToString()); }
+                        double u = (double)n / (j + 2);
+                        ans[gram] = new FPLtype
+                        {
+                            mean = u,
+                            stderr = Math.Sqrt((double)sp2 / (j + 2) - u * u),
+                            sqrtSum = sp0_5,
+                            logSum = slog,
+                            percent10 = cursor
+                        };
                     }
-                    double u = (double)n / (j + 2);
-                    ans[i] = new FPLtype { mean = u, stderr = Math.Sqrt((double)sp2 / (j + 2) - u * u), sqrtSum = sp0_5, logSum = slog };
                 }
                 Trace.Write("OK");
                 //System.Windows.Forms.MessageBox.Show(string.Join(", ", ans.GetRange(0, 20)));
                 return sa.FPL = ans;
             }
+            catch(Exception error) { System.Windows.Forms.MessageBox.Show(error.ToString());throw; }
             finally { Trace.Unindent(); }
         }
         private int Count(SuffixArray sa,string s)
@@ -141,16 +191,17 @@ namespace WikiDataAnalysis
         }
         public bool IsBuilt { get; private set; } = false;
         public List<string> SplittedWords { get; private set; }
-        public enum ProbTypeEnum { CdL, CdM, CxLdM, CmMdSTDE, sqCdS, sqCxLdS, lnCdS, lnCxLdS }
+        public enum ProbTypeEnum { CdL, CdM, CxLdM, CmMdSTDE, sqCdS, sqCxLdS, lnCdS, lnCxLdS,Sigmoid }
         public const string probTypeString =
-                                   "probType == ProbTypeEnum.CdL ? Math.Log(wordCount / (motherSA.S.Length - l + 1)) :                                                                            \n" +
-                                   "probType == ProbTypeEnum.CdM? Math.Log(wordCount / fpl[l].mean) :                                                                                             \n" +
-                                   "probType == ProbTypeEnum.CxLdM? Math.Log(wordCount / fpl[l].mean) * l :                                                                                       \n" +
-                                   "probType == ProbTypeEnum.CmMdSTDE? (Count(motherSA, s.Substring(i, l)) - fpl[l].mean) / Math.Pow(fpl[l].stderr, 1.0) :                                        \n" +
-                                   "probType == ProbTypeEnum.sqCdS? Math.Log((double) Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) :                              \n" +
-                                   "probType == ProbTypeEnum.sqCxLdS? Math.Log((double) Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) * l :                        \n" +
-                                   "probType == ProbTypeEnum.lnCdS? Math.Log(Math.Max(double.Epsilon, (double) Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) :      \n" +
-                                   "probType == ProbTypeEnum.lnCxLdS? Math.Log(Math.Max(double.Epsilon, (double) Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) * l :\n";
+                                   "probType == ProbTypeEnum.CdL ? Math.Log(wordCount / (motherSA.S.Length - l + 1)) :\n" +
+                                   "probType == ProbTypeEnum.CdM ? Math.Log(wordCount / fpl[l].mean) :\n" +
+                                   "probType == ProbTypeEnum.CxLdM ? Math.Log(wordCount / fpl[l].mean) * l :\n" +
+                                   "probType == ProbTypeEnum.CmMdSTDE ? (Count(motherSA, s.Substring(i, l)) - fpl[l].mean) / Math.Pow(fpl[l].stderr, 1.0) :\n" +
+                                   "probType == ProbTypeEnum.sqCdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) :\n" +
+                                   "probType == ProbTypeEnum.sqCxLdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) * l :\n" +
+                                   "probType == ProbTypeEnum.lnCdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) :\n" +
+                                   "probType == ProbTypeEnum.lnCxLdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) * l :\n" +
+                                   "probType == ProbTypeEnum.Sigmoid ? 1.0 / (1.0 + Math.Exp(-(Count(motherSA, s.Substring(i, l)) - fpl[l].mean) / fpl[l].stderr)) * l :\n";
         List<string> Split(string s, int maxWordLength, BEMSmodel bm,double probRatio,double bemsRatio, ProbTypeEnum probType,bool logPortion)
         {
             try
@@ -174,10 +225,10 @@ namespace WikiDataAnalysis
                     Parallel.For(1, Math.Min(n - i, maxWordLength) + 1, (l) =>
                            {
                                double wordCount = Count(motherSA, s.Substring(i, l));
-                               if(wordCount==0)
-                               {
-                                   wordCount = Math.Pow(((fpl[1].sqrtSum / (motherSA.S.Length / fpl[1].mean))) / motherSA.S.Length, l);
-                               }
+                               //if (wordCount <= 5)//fpl[l].percent10)
+                               //{
+                               //    wordCount = Math.Max(wordCount - 5, Math.Pow(((fpl[1].sqrtSum / (motherSA.S.Length / fpl[1].mean))) / motherSA.S.Length, l));
+                               //}
                                double probLog =
                                    probType == ProbTypeEnum.CdL ? Math.Log(wordCount / (motherSA.S.Length - l + 1)) :
                                    probType == ProbTypeEnum.CdM ? Math.Log(wordCount / fpl[l].mean) :
@@ -187,6 +238,7 @@ namespace WikiDataAnalysis
                                    probType == ProbTypeEnum.sqCxLdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (motherSA.S.Length / fpl[l].mean))) * l :
                                    probType == ProbTypeEnum.lnCdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) :
                                    probType == ProbTypeEnum.lnCxLdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (motherSA.S.Length / fpl[l].mean)))) * l :
+                                   probType == ProbTypeEnum.Sigmoid ? 1.0 / (1.0 + Math.Exp(-(Count(motherSA, s.Substring(i, l)) - fpl[l].mean) / fpl[l].stderr)) * l :
                                    throw new Exception($"Unknown probType: {probType}"); // (Count(sa, i, l) - fpl[l].Item1) / Math.Pow(fpl[l].Item2, 1.0);
                                double bemsLog = bm.Query(motherSA.S.Substring(i, l));
                                probLog = logPortion ? probLog * probRatio + bemsLog * bemsRatio : Math.Log(Math.Exp(probLog) * probRatio + Math.Exp(bemsLog) * bemsRatio);

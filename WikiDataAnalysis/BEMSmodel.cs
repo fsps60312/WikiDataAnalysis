@@ -11,7 +11,7 @@ namespace WikiDataAnalysis
 {
     class BEMSmodel
     {
-        public enum BEMS { B,E,M,S};
+        public enum BEMS { B, E, M, S }
         const string dicUrl = "https://raw.githubusercontent.com/fxsjy/jieba/master/jieba/finalseg/prob_emit.py";
         public Dictionary<char, Dictionary<char, double>> dic { get; private set; }
         double defaultMinValue=double.NegativeInfinity;
