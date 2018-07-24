@@ -361,7 +361,7 @@ namespace WikiDataAnalysis
                         (s, encodingSelected == DialogResult.Yes ? Encoding.UTF8 : Encoding.Unicode))
                     {
                         Trace.WriteLine("Reading...");
-                        StringBuilder sb = new StringBuilder();
+                        var sb = new StringBuilder();
                         for (char[] buf = new char[1024 * 1024]; ;)
                         {
                             int n = await reader.ReadAsync(buf, 0, buf.Length);
@@ -619,6 +619,7 @@ namespace WikiDataAnalysis
                     var t = sa.S.Substring(s[i].Item1, n);
                     if (t.IndexOf('\r') == -1 && t.IndexOf('\n') == -1) sb.AppendLine($"{s[i].Item2}\t{t}");
                 }
+                sb.AppendLine($"Total Count: {s.Sum(v=>(long)v.Item2)}");
             }
             finally { Trace.Unindent(); }
             Trace.Write("Done");

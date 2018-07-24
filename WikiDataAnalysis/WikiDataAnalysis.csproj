@@ -72,6 +72,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="MyStringBuilder.cs" />
     <Compile Include="OutputForm.cs">
       <SubType>Form</SubType>
     </Compile>
