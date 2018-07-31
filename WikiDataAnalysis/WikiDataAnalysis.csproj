@@ -80,6 +80,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SAM.cs" />
     <Compile Include="SAM_Extension.cs" />
+    <Compile Include="SATabPage.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="SentenceSplitter.cs" />
     <Compile Include="SimpleMethod.cs" />
     <Compile Include="SuffixArray.cs" />
