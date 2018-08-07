@@ -87,6 +87,9 @@
     <Compile Include="SimpleMethod.cs" />
     <Compile Include="SuffixArray.cs" />
     <Compile Include="TestCode.cs" />
+    <Compile Include="TrieTabPage.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Utils.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

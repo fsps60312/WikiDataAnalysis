@@ -29,6 +29,7 @@ namespace WikiDataAnalysis
             this.Shown += Form1_Shown;
             var tc = new MyTabControl();
             tc.TabPages.Add(new SATabPage());
+            tc.TabPages.Add(new TrieTabPage());
             this.Controls.Add(tc);
         }
 
@@ -57,6 +58,7 @@ namespace WikiDataAnalysis
             f.Show();
             f.Location = this.Location;
             f.Top += this.Height;
+            f.Width = this.Width;
             f.BringToFront();
             //System.Windows.Forms.MessageBox.Show($"{tl.IsThreadSafe} {Trace.UseGlobalLock}");
             //Trace.UseGlobalLock = true;
