@@ -440,6 +440,7 @@ namespace DownloadWikiData
                 {"div", new List<Dictionary<string, string>>() },
                 {"img/", new List<Dictionary<string, string>>() }
             };
+            webContent = webContent.Replace("<", " <");
             StringBuilder ans = new StringBuilder();
             for (int i=0;i<webContent.Length;i++)
             {

@@ -12,32 +12,45 @@ namespace DownloadWikiData
 {
     class Program
     {
-        const string titleListUrl = "https://dumps.wikimedia.org/zhwiki/20180501/zhwiki-20180501-pages-articles-multistream-index.txt.bz2";
-        const string curlUrl = "https://zh.wikipedia.org/zh-tw/";//+"数学";
+        //const string titleListUrl = "https://dumps.wikimedia.org/zhwiki/20180501/zhwiki-20180501-pages-articles-multistream-index.txt.bz2";
+        //const string curlUrl = "https://zh.wikipedia.org/zh-tw/";//+"数学";
+        const string titleListUrl = "https://dumps.wikimedia.org/enwiki/20180801/enwiki-20180801-pages-articles-multistream-index.txt.bz2";
+        const string curlUrl = "https://en.wikipedia.org/wiki/";//+"数学";
         static async Task<List<string>>GetTitleList()
         {
-            HttpClient client = new HttpClient();
-            Console.WriteLine("Downloading...");
-            var stream = new MemoryStream();
-            BZip2.Decompress(await client.GetStreamAsync(titleListUrl), stream, true);
-            Console.WriteLine("Done");
-            using (var f = new FileStream("tmp.txt", FileMode.Create))
+            try
             {
-                var b = stream.ToArray();
-                f.Write(b, 0, b.Length);
-                f.Close();
-            }
-            var s = Encoding.UTF8.GetString(stream.ToArray()).Split('\n').Select(v =>
-            {
-                return v.Substring(v.IndexOf(':', v.IndexOf(':') + 1) + 1);
-            }).ToArray();
-            var blackList = new string[]
-            {
+                HttpClient client = new HttpClient();
+                client.Timeout = TimeSpan.FromMinutes(30);
+                Console.WriteLine("Downloading...");
+                var stream = new MemoryStream();
+                BZip2.Decompress(await client.GetStreamAsync(titleListUrl), stream, true);
+                Console.WriteLine("Done");
+                using (var f = new FileStream("tmp.txt", FileMode.Create))
+                {
+                    var b = stream.ToArray();
+                    f.Write(b, 0, b.Length);
+                    f.Close();
+                }
+                var s = new StreamReader(new MemoryStream(stream.ToArray()), Encoding.UTF8).ReadToEnd().Split('\n').Select(v =>
+                 {
+                     return v.Substring(v.IndexOf(':', v.IndexOf(':') + 1) + 1);
+                 }).ToArray();
+                var blackList = new string[]
+                {
                 "Wikipedia:删除纪录/档案馆/2004年3月"
-            };
-            List<string> ans = new List<string>();
-            foreach (var v in s) if (!blackList.Contains(v)) ans.Add(v);
-            return ans;
+                };
+                List<string> ans = new List<string>();
+                foreach (var v in s) if (!blackList.Contains(v)) ans.Add(v);
+                return ans;
+            }
+            catch (Exception error)
+            {
+                Console.WriteLine(error.ToString());
+                Console.WriteLine("Press Enter to continue...");
+                Console.ReadLine();
+                return null;
+            }
         }
         static Random rand = new Random();
         static async void Run()

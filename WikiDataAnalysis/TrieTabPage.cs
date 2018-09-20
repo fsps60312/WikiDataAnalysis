@@ -89,7 +89,7 @@ namespace WikiDataAnalysis
             BTNnew.Click += delegate
             {
                 System.Diagnostics.Trace.WriteLine("A");
-                string s = new string('0', 1200000000);
+                string s;
                 System.Diagnostics.Trace.WriteLine("B");
 
                 //string s = "";

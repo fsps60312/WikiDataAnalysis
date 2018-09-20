@@ -360,10 +360,21 @@ namespace WikiDataAnalysis
                         {
                             int n = await reader.ReadAsync(buf, 0, buf.Length);
                             if (n == 0) break;
-                            for (int i = 0; i < n; i++) sb.Append(buf[i]);
+                            for (int i = 0; i < n; i++)
+                            {
+                                sb.Append(buf[i]);
+                                const int stringMaxLength = int.MaxValue / 2 - 100;
+                                if (sb.Length > stringMaxLength)
+                                {
+                                    sb.Remove(stringMaxLength, sb.Length - stringMaxLength);
+                                    MessageBox.Show($"Reach C# string max length: {sb.Length}, breaking");
+                                    goto index_skipRead;
+                                }
+                            }
                             Trace.WriteLine($"Reading...{s.Position}/{s.Length}");
                             if (CHBdebugMode.Checked && s.Position > 1000000) break;
                         }
+                        index_skipRead:;
                         data = sb.ToString();//.Replace("\r\n"," ");
                         if (CHBreplaceWithEmptyExceptChinese.Checked)
                         {
