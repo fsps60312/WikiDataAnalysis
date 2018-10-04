@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WikiDataAnalysis", "WikiDat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DownloadWikiData", "DownloadWikiData\DownloadWikiData.csproj", "{1A748F72-17CA-47B2-9101-72253E8AD825}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPU", "GPU\GPU.csproj", "{8B45D65B-9651-4BAE-813F-37BB983610E0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,12 @@ Global
 		{1A748F72-17CA-47B2-9101-72253E8AD825}.Heavy Test|Any CPU.Build.0 = Release|Any CPU
 		{1A748F72-17CA-47B2-9101-72253E8AD825}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A748F72-17CA-47B2-9101-72253E8AD825}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Heavy Test|Any CPU.ActiveCfg = Release|Any CPU
+		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Heavy Test|Any CPU.Build.0 = Release|Any CPU
+		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

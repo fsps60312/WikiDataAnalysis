@@ -30,14 +30,22 @@ namespace DownloadWikiData
             {
                 if(i==-1)
                 {
-                    Console.WriteLine($"Extra TagEnd: {tagName}");
-                    Console.WriteLine("==================================");
-                    Console.WriteLine($"len={webContent.Length},idx={contentIndex}");
-                    Console.WriteLine("==================================");
-                    Console.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
-                    Console.WriteLine("==================================");
-                    Console.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
-                    Console.WriteLine("==================================");
+                    using (var w = new System.IO.StreamWriter("warning.txt", true, Encoding.UTF8))
+                    {
+                        w.WriteLine();
+                        w.WriteLine("".PadRight(50, '|'));
+                        w.WriteLine();
+                        w.WriteLine(webContent);
+                        w.WriteLine("==================================");
+                        w.WriteLine($"Extra TagEnd: {tagName}");
+                        w.WriteLine("==================================");
+                        w.WriteLine($"len={webContent.Length},idx={contentIndex}");
+                        w.WriteLine("==================================");
+                        w.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
+                        w.WriteLine("==================================");
+                        w.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
+                        w.WriteLine("==================================");
+                    }
                     return;
                 }
                 if (tags[i].name == tagName)
@@ -294,15 +302,25 @@ namespace DownloadWikiData
             }
             catch (Exception error)
             {
-                Console.WriteLine(error.ToString());
-                Console.WriteLine("==================================");
-                Console.WriteLine($"len={webContent.Length},idx={contentIndex}");
-                Console.WriteLine("==================================");
-                Console.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
-                Console.WriteLine("==================================");
-                Console.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
-                Console.WriteLine("==================================");
-                Console.ReadLine();
+                var directoryName = DateTime.Now.ToString(Program.DateTimeFormatString);
+                while (System.IO.Directory.Exists(directoryName)) directoryName += "-";
+                System.IO.Directory.CreateDirectory(directoryName);
+                using (var w = new System.IO.StreamWriter(directoryName + "\\content.html", true, Encoding.UTF8))
+                {
+                    w.WriteLine(webContent);
+                }
+                using (var w = new System.IO.StreamWriter(directoryName + "\\error.txt", true, Encoding.UTF8))
+                {
+                    w.WriteLine(error.ToString());
+                    w.WriteLine("==================================");
+                    w.WriteLine($"len={webContent.Length},idx={contentIndex}");
+                    w.WriteLine("==================================");
+                    w.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
+                    w.WriteLine("==================================");
+                    w.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
+                    w.WriteLine("==================================");
+                    //Console.ReadLine();
+                }
             }
         }
         bool IsEmpty(char c) { return c == ' ' || c == '\n' || c == '\r'; }
@@ -440,7 +458,6 @@ namespace DownloadWikiData
                 {"div", new List<Dictionary<string, string>>() },
                 {"img/", new List<Dictionary<string, string>>() }
             };
-            webContent = webContent.Replace("<", " <");
             StringBuilder ans = new StringBuilder();
             for (int i=0;i<webContent.Length;i++)
             {
