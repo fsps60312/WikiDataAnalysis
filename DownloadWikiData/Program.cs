@@ -62,23 +62,26 @@ namespace DownloadWikiData
                 {
                     int progress = 0;
                     int total_progress = retryList.Count;
+                    Console.WriteLine($"Url Prefix: {curlUrl}");
                     while (retryList.Count > 0)
                     {
-                        var s = retryList;
+                        var s = retryList.ToList();
                         retryList.Clear();
                         int iterationCount = s.Count;// 1000;
                                                      //System.Threading.SemaphoreSlim semaphore = new System.Threading.SemaphoreSlim(10, 10);
+                        Console.WriteLine($"Iteration Count: {iterationCount}");
                         var po = new ParallelOptions();
                         po.MaxDegreeOfParallelism = 15;
-                        Console.WriteLine($"Url Prefix: {curlUrl}");
+
                         Parallel.For(0, iterationCount, po, _i =>
                         {
+                            //Console.WriteLine($"Url Prefix: {curlUrl}");
                             //int i = rand.Next(s.Count);
                             int i = _i;
                             var titleName = System.Net.WebUtility.UrlEncode(s[i].Replace(' ', '_'));
                             var url = curlUrl + titleName;
-                            int paddingstringlength = iterationCount.ToString().Length * 3 + 2;
-                            var GetPaddingString = new Func<string>(() => $"{progress}/{total_progress}/{retryList.Count}".PadRight(paddingstringlength) + " ");
+                            int paddingstringlength = iterationCount.ToString().Length * 2 + 1;
+                            var GetPaddingString = new Func<string>(() => $"{progress}/{retryList.Count}".PadRight(paddingstringlength) + " ");
                             int padding = 20;
                             {
                                 var p = System.Threading.Interlocked.Increment(ref progress);
