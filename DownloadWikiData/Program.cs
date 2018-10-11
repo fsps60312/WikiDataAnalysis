@@ -147,7 +147,7 @@ namespace DownloadWikiData
                                     {
                                         if (e.Message == "An error occurred while sending the request.")
                                         {
-                                            retryList.Add(s[i]);
+                                            lock (retryList) retryList.Add(s[i]);
                                             return;
                                         }
                                         var code = GetStatusCode(e.Message);
@@ -161,7 +161,7 @@ namespace DownloadWikiData
                                             }
                                             System.Threading.Interlocked.Decrement(ref progress);
                                             System.Threading.Thread.Sleep(10000);
-                                            retryList.Add(s[i]);
+                                            lock (retryList) retryList.Add(s[i]);
                                             return;
                                         }
                                     }
@@ -169,7 +169,7 @@ namespace DownloadWikiData
                                     {
                                         if (e.Message == "A task was canceled.")
                                         {
-                                            retryList.Add(s[i]);
+                                            lock (retryList) retryList.Add(s[i]);
                                             return;
                                         }
                                     }
