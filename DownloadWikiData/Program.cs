@@ -55,114 +55,128 @@ namespace DownloadWikiData
         static Random rand = new Random();
         static async void Run()
         {
-            var s = await GetTitleList();
+            var retryList = await GetTitleList();
             using (StreamWriter writer = new StreamWriter("output.txt", false, Encoding.UTF8))
             {
                 using (StreamWriter log = new StreamWriter("log.txt", false, Encoding.UTF8))
                 {
                     int progress = 0;
-                    int iterationCount = s.Count;// 1000;
-                                                 //System.Threading.SemaphoreSlim semaphore = new System.Threading.SemaphoreSlim(10, 10);
-                    var po = new ParallelOptions();
-                    po.MaxDegreeOfParallelism = 15;
-                    Console.WriteLine($"Url Prefix: {curlUrl}");
-                    Parallel.For(0, iterationCount, po, _i =>
+                    int total_progress = retryList.Count;
+                    while (retryList.Count > 0)
                     {
-                        //int i = rand.Next(s.Count);
-                        int i = _i;
-                        var titleName = System.Net.WebUtility.UrlEncode(s[i].Replace(' ', '_'));
-                        var url = curlUrl + titleName;
-                        index_Retry:;
-                        int paddingstringlength = iterationCount.ToString().Length * 2 + 1;
-                        var GetPaddingString = new Func<string>(() => $"{progress}/{iterationCount}".PadLeft(paddingstringlength) + " ");
-                        int padding = 20;
+                        var s = retryList;
+                        retryList.Clear();
+                        int iterationCount = s.Count;// 1000;
+                                                     //System.Threading.SemaphoreSlim semaphore = new System.Threading.SemaphoreSlim(10, 10);
+                        var po = new ParallelOptions();
+                        po.MaxDegreeOfParallelism = 15;
+                        Console.WriteLine($"Url Prefix: {curlUrl}");
+                        Parallel.For(0, iterationCount, po, _i =>
                         {
-                            var p = System.Threading.Interlocked.Increment(ref progress);
-                            var __ = (GetPaddingString() + titleName.PadLeft(Console.WindowWidth - 1 - paddingstringlength));
-                            if (__.Length > Console.WindowWidth-1 ) __ = __.Remove(Console.WindowWidth-1 );
-                            Console.Write(__ + "\r");
-                            lock (log) log.WriteLine($"{p}/{iterationCount}\t{url}");
-                        }
-                        Console.Write(GetPaddingString()+ $"Downloading...".PadRight(padding) + "\r");
-                        try
-                        {
-                            //semaphore.Wait();
-                            string webContent;
-                            using (HttpClient client = new HttpClient())
+                            //int i = rand.Next(s.Count);
+                            int i = _i;
+                            var titleName = System.Net.WebUtility.UrlEncode(s[i].Replace(' ', '_'));
+                            var url = curlUrl + titleName;
+                            int paddingstringlength = iterationCount.ToString().Length * 3 + 2;
+                            var GetPaddingString = new Func<string>(() => $"{progress}/{total_progress}/{retryList.Count}".PadRight(paddingstringlength) + " ");
+                            int padding = 20;
                             {
-                                webContent = client.GetStringAsync(url).Result;
+                                var p = System.Threading.Interlocked.Increment(ref progress);
+                                var __ = (GetPaddingString() + titleName.PadLeft(Console.WindowWidth - 1 - paddingstringlength));
+                                if (__.Length > Console.WindowWidth - 1) __ = __.Remove(Console.WindowWidth - 1);
+                                Console.Write(__ + "\r");
+                                lock (log) log.WriteLine($"{p}/{iterationCount}\t{url}");
                             }
-                            Console.Write(GetPaddingString() + $"Processing... ({webContent.Length})".PadRight(padding) + "\r");
-                            webContent = new Runner().Run(webContent.Replace("<", " <"));
-                            Console.Write(GetPaddingString() + $"Writing... ({webContent.Length})".PadRight(padding) + "\r");
-                            lock (writer)
+                            Console.Write(GetPaddingString() + $"Downloading...".PadRight(padding) + "\r");
+                            try
                             {
-                                writer.WriteLine($"\r\n===================={s[i]}====================\r\n");
-                                writer.WriteLine(webContent);
-                            }
-                            Console.Write(GetPaddingString() + $"Done ({webContent.Length})".PadRight(padding) + "\r");
-                        }
-                        catch (Exception _error)
-                        {
-                            var GetStatusCode = new Func<string, int>(o =>
-                               {
-                                   const string target = "Response status code does not indicate success: ";
-                                   var _ = o.IndexOf(target);
-                                   if (_ == -1) return -1;
-                                   _ += target.Length;
-                                   var __ = o.IndexOf(" ", _);
-                                   if (__ != _ + 3) return -2;
-                                   int ans;
-                                   if (!int.TryParse(o.Substring(_, 3), out ans)) return -3;
-                                   return ans;
-                               });
-                            var RecordError = new Action<Exception>(o =>
-                              {
-                                  Console.WriteLine(url.PadRight(Console.WindowWidth - 1));
-                                  Console.WriteLine(o);
-                                  using (StreamWriter w = new StreamWriter("error.txt", true, Encoding.UTF8))
-                                  {
-                                      w.WriteLine();
-                                      w.WriteLine(s[i]);
-                                      w.WriteLine(url);
-                                      w.WriteLine(o);
-                                      w.Close();
-                                  }
-                              });
-                            var errors = new[] { _error };
-                            while(errors.Any(e=>e is AggregateException))
-                            {
-                                errors = errors.SelectMany(e => e is AggregateException ? (e as AggregateException).InnerExceptions.ToArray() : new[] { e }).ToArray();
-                            }
-                            foreach (var e in errors)
-                            {
-                                if (e is HttpRequestException)
+                                //semaphore.Wait();
+                                string webContent;
+                                using (HttpClient client = new HttpClient())
                                 {
-                                    if (e.Message == "An error occurred while sending the request.") goto index_Retry;
-                                    var code = GetStatusCode(e.Message);
-                                    if (code != 404)
+                                    webContent = client.GetStringAsync(url).Result;
+                                }
+                                Console.Write(GetPaddingString() + $"Processing... ({webContent.Length})".PadRight(padding) + "\r");
+                                webContent = new Runner().Run(webContent.Replace("<", " <"));
+                                Console.Write(GetPaddingString() + $"Writing... ({webContent.Length})".PadRight(padding) + "\r");
+                                lock (writer)
+                                {
+                                    writer.WriteLine($"\r\n===================={s[i]}====================\r\n");
+                                    writer.WriteLine(webContent);
+                                }
+                                Console.Write(GetPaddingString() + $"Done ({webContent.Length})".PadRight(padding) + "\r");
+                            }
+                            catch (Exception _error)
+                            {
+                                var GetStatusCode = new Func<string, int>(o =>
+                                   {
+                                       const string target = "Response status code does not indicate success: ";
+                                       var _ = o.IndexOf(target);
+                                       if (_ == -1) return -1;
+                                       _ += target.Length;
+                                       var __ = o.IndexOf(" ", _);
+                                       if (__ != _ + 3) return -2;
+                                       int ans;
+                                       if (!int.TryParse(o.Substring(_, 3), out ans)) return -3;
+                                       return ans;
+                                   });
+                                var RecordError = new Action<Exception>(o =>
+                                  {
+                                      Console.WriteLine(url.PadRight(Console.WindowWidth - 1));
+                                      Console.WriteLine(o);
+                                      using (StreamWriter w = new StreamWriter("error.txt", true, Encoding.UTF8))
+                                      {
+                                          w.WriteLine();
+                                          w.WriteLine(s[i]);
+                                          w.WriteLine(url);
+                                          w.WriteLine(o);
+                                          w.Close();
+                                      }
+                                  });
+                                var errors = new[] { _error };
+                                while (errors.Any(e => e is AggregateException))
+                                {
+                                    errors = errors.SelectMany(e => e is AggregateException ? (e as AggregateException).InnerExceptions.ToArray() : new[] { e }).ToArray();
+                                }
+                                foreach (var e in errors)
+                                {
+                                    if (e is HttpRequestException)
                                     {
-                                        if (code != 429 && code != 400 && code != 500)
+                                        if (e.Message == "An error occurred while sending the request.")
                                         {
-                                            Console.WriteLine($"Http Status Code: {code}".PadRight(Console.WindowWidth));
-                                            //RecordError(e);
-                                            RecordError(_error);
+                                            retryList.Add(s[i]);
+                                            return;
                                         }
-                                        System.Threading.Interlocked.Decrement(ref progress);
-                                        System.Threading.Thread.Sleep(10000);
-                                        goto index_Retry;
+                                        var code = GetStatusCode(e.Message);
+                                        if (code != 404)
+                                        {
+                                            if (code != 429 && code != 400 && code != 500)
+                                            {
+                                                Console.WriteLine($"Http Status Code: {code}".PadRight(Console.WindowWidth));
+                                                //RecordError(e);
+                                                RecordError(_error);
+                                            }
+                                            System.Threading.Interlocked.Decrement(ref progress);
+                                            System.Threading.Thread.Sleep(10000);
+                                            retryList.Add(s[i]);
+                                            return;
+                                        }
+                                    }
+                                    else if (e is TaskCanceledException)
+                                    {
+                                        if (e.Message == "A task was canceled.")
+                                        {
+                                            retryList.Add(s[i]);
+                                            return;
+                                        }
                                     }
                                 }
-                                else if(e is TaskCanceledException)
-                                {
-                                    if (e.Message == "A task was canceled.") goto index_Retry;
-                                }
+                                RecordError(_error);
                             }
-                            RecordError(_error);
-                        }
-                        //finally { lock (semaphore) semaphore.Release(); }
-                        //await Task.Delay(1000);
-                    });
+                            //finally { lock (semaphore) semaphore.Release(); }
+                            //await Task.Delay(1000);
+                        });
+                    }
                     log.Close();
                 }
                 writer.Close();
