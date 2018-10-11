@@ -127,7 +127,7 @@ namespace WikiDataAnalysis
                         Invoke(v.Item1, v.Item2);
                     }
                     EnsureIndent(indent);
-                    msgs.Add(new string('\t', msgs.Count) + msg);
+                    msgs.Add(msg);
                     ShowMsg();
                 });
                 listener.NewLine += f;
