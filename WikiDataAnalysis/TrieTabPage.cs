@@ -326,7 +326,9 @@ namespace WikiDataAnalysis
                 {
                     Trace.Unindent();
                     Trace.Indent();
-                    Trace.WriteLine(TXBout.Text = $"Iteration: {iterIdx + 1}/{iterCount}");
+                        var iterationStatus = $"Iteration: {iterIdx + 1}/{iterCount}";
+                        TXBout.AppendText(iterationStatus + "\r\n");
+                        Trace.WriteLine(iterationStatus);
                     try
                     {
                         Trace.Indent();
@@ -337,6 +339,7 @@ namespace WikiDataAnalysis
                         await Task.Run(() => fpl = SentenceSplitter.MethodsForTrie.FrequencyPerLength(trie));
                         string[] ddd = null;
                         Trace.WriteLine("Preprocessing data...");
+                        var data = string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : this.data) : TXBdata.Text;
                         await Task.Run(() => ddd = data.Split(' '));
                         {
                             int progress = 0, total_progress = ddd.Length, percent = -1;
@@ -371,6 +374,7 @@ namespace WikiDataAnalysis
                             Trace.Assert(progress == total_progress);
                         }
                         Trace.WriteLine($"{words.Count} words / {data.Length} chars identified.");
+                        TXBout.Text = iterationStatus + "\r\n";
                         for (int i = 0; i < 1000 && i < words.Count; i++) TXBout.AppendText(words[i] + " ");
                         await Task.Run(() =>
                         {
