@@ -87,6 +87,9 @@
     <Compile Include="SimpleMethod.cs" />
     <Compile Include="SuffixArray.cs" />
     <Compile Include="TestCode.cs" />
+    <Compile Include="ToolsTabPage.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Trie.cs" />
     <Compile Include="TrieTabPage.cs">
       <SubType>Component</SubType>

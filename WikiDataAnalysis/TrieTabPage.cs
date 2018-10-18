@@ -53,6 +53,7 @@ namespace WikiDataAnalysis
                     {
                         Trace.WriteLine("Reading...");
                         var sb = new StringBuilder();
+                        data = "";
                         for (char[] buf = new char[1024 * 1024]; ;)
                         {
                             int n = await reader.ReadAsync(buf, 0, buf.Length);
@@ -64,15 +65,19 @@ namespace WikiDataAnalysis
                                 if (sb.Length > stringMaxLength)
                                 {
                                     sb.Remove(stringMaxLength, sb.Length - stringMaxLength);
-                                    MessageBox.Show($"Reach C# string max length: {sb.Length}, breaking");
-                                    goto index_skipRead;
+                                    if(MessageBox.Show($"Reach C# string max length: {sb.Length}, break?","Warning",MessageBoxButtons.OKCancel)==DialogResult.OK) goto index_skipRead;
+                                    else
+                                    {
+                                        data += sb.ToString();
+                                        sb.Clear();
+                                    }
                                 }
                             }
                             Trace.WriteLine($"Reading...{s.Position}/{s.Length}");
                             if (CHBdebugMode.Checked && s.Position > 1000000) break;
                         }
                         index_skipRead:;
-                        data = sb.ToString();//.Replace("\r\n"," ");
+                        data += sb.ToString();//.Replace("\r\n"," ");
                     }
                     Trace.WriteLine($"{data.Length} charactors read.");
                     TXBout.Text = data.Length > 10000 ? data.Remove(10000) : data;

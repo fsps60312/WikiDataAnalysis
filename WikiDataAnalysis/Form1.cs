@@ -30,6 +30,7 @@ namespace WikiDataAnalysis
             var tc = new MyTabControl();
             tc.TabPages.Add(new SATabPage());
             tc.TabPages.Add(new TrieTabPage());
+            tc.TabPages.Add(new ToolsTabPage());
             this.Controls.Add(tc);
         }
 
