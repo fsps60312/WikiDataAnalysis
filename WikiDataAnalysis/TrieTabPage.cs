@@ -31,31 +31,11 @@ namespace WikiDataAnalysis
         const double default_probRatio = 1;
         const int default_baseDataLength = -1;
         const double default_decayRatio = 1.0;
-        int maxWordLength
-        {
-            get { return int.Parse(IFdata.GetField("maxWordLength")); }
-            set { SetIFdata("maxWordLength", value.ToString()); }
-        }
-        double bemsRatio
-        {
-            get { return int.Parse(IFdata.GetField("bemsRatio")); }
-            set { SetIFdata("bemsRatio", value.ToString()); }
-        }
-        double probRatio
-        {
-            get { return int.Parse(IFdata.GetField("probRatio")); }
-            set { SetIFdata("probRatio", value.ToString()); }
-        }
         int baseDataLength
         {
             get { return int.Parse(IFdata.GetField("baseDataLength")); }
             set { SetIFdata("baseDataLength", value.ToString()); }
         }
-        double decayRatio
-        {
-            get { return double.Parse(IFdata.GetField("decayRatio")); }
-            set { SetIFdata("decayRatio", value.ToString()); }
-            }
         void SetIFdata(string key,string value)
         {
             if (IFdata.InvokeRequired) IFdata.Invoke(new Action(() => IFdata.GetTextBox(key).Text = value));
@@ -134,7 +114,6 @@ namespace WikiDataAnalysis
             {
                 if (CHBsplit.Checked)
                 {
-                    maxWordLength = int.Parse(IFdata.GetField("maxWordLength"));
                     if (trie.IsBuilt)
                     {
                         await PerformSplit();
@@ -190,6 +169,9 @@ namespace WikiDataAnalysis
             try
             {
                 Trace.Indent();
+                var maxWordLength = int.Parse(IFdata.GetField("maxWordLength"));
+                var probRatio = double.Parse(IFdata.GetField("probRatio"));
+                var bemsRatio = double.Parse(IFdata.GetField("bemsRatio"));
                 CHBsplit.Enabled = false;
                 string fileName = "output.txt";
                 var encoding = Encoding.UTF8;
@@ -308,6 +290,9 @@ namespace WikiDataAnalysis
                     methodInfo = Utils.DynamicCompile.GetMethod(code, namespaceName, className, methodName, "System");
                     var method = new Func<double,double, double, double, double, double>((l,c, e, m, s) => (double)methodInfo.Invoke(null, new object[] {l, c, e, m, s }));
                     Trace.WriteLine("Splitting...");
+                    var maxWordLength = int.Parse(IFdata.GetField("maxWordLength"));
+                    var probRatio = double.Parse(IFdata.GetField("probRatio"));
+                    var bemsRatio = double.Parse(IFdata.GetField("bemsRatio"));
                     StringBuilder sb_ret = new StringBuilder();
                     long cnt = 0;
                     await Task.Run(() =>
@@ -454,6 +439,9 @@ namespace WikiDataAnalysis
                     try
                     {
                         Trace.Indent();
+                        var maxWordLength = int.Parse(IFdata.GetField("maxWordLength"));
+                        var probRatio = double.Parse(IFdata.GetField("probRatio"));
+                        var bemsRatio = double.Parse(IFdata.GetField("bemsRatio"));
                         var words = new List<string>();
                         var ss = new SentenceSplitter(trie, baseDataLength);
                         List<FPLtype> fpl = null;
@@ -498,6 +486,7 @@ namespace WikiDataAnalysis
                         Trace.WriteLine($"{words.Count} words / {data.Length} chars identified.");
                         TXBout.Text = iterationStatus + "\r\n";
                         for (int i = 0; i < 1000 && i < words.Count; i++) TXBout.AppendText(words[i] + " ");
+                        var decayRatio = double.Parse(IFdata.GetField("decayRatio"));
                         await Task.Run(() =>
                         {
                             Trace.WriteLine($"Decaying... ratio = {decayRatio}");
