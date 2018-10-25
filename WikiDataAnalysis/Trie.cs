@@ -12,7 +12,8 @@ namespace WikiDataAnalysis
     {
         public long Size { get { return CNT.Count(); } }
         public Trie() { Clear(); }
-        public bool IsBuilt { get { return true; } }
+        private bool _IsBuilt = false;
+        public bool IsBuilt { get { return _IsBuilt; } }
         List<Dictionary<char, int>> CH = new List<Dictionary<char, int>>();
         List<long> CNT = new List<long>();
         public void Clear()
@@ -62,6 +63,16 @@ namespace WikiDataAnalysis
             }
             return CNT[u];
         }
+        public List<char>NextChars(string s)
+        {
+            int u = 0;
+            foreach (var c in s)
+            {
+                if (!CH[u].ContainsKey(c)) return new List<char>();
+                u = CH[u][c];
+            }
+            return CH[u].Keys.ToList();
+        }
         public async Task BuildAsync(string maindata,int maxWordLength)
         {
             Trace.Indent();
@@ -88,6 +99,7 @@ namespace WikiDataAnalysis
                     }
                 });
                 Trace.WriteLine("Trie.BuildAsync: OK");
+                _IsBuilt = true;
             }
             finally { Trace.Unindent(); }
         }
@@ -191,6 +203,10 @@ namespace WikiDataAnalysis
                 Trace.WriteLine("OK");
             }
             finally { Trace.Unindent(); }
+        }
+        public void Decay(double decayRatio)
+        {
+            for (int i = 0; i < CNT.Count; i++) CNT[i] = (long)Math.Floor(CNT[i] * decayRatio);
         }
     }
 }

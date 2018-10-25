@@ -185,43 +185,120 @@ namespace WikiDataAnalysis
         Func<List<FPLtype>> FrequencyPerLength;
         Func<string,int> Count;
         Func<int> BaseDataLength;
+        Func<string, List<char>> NextChars;
         public SentenceSplitter(SuffixArray sa)
         {
             FrequencyPerLength = () => MethodsForSuffixArray.FrequencyPerLength(sa);
             Count = s => MethodsForSuffixArray.Count(sa, s);
             BaseDataLength = () => sa.S.Length;
+            NextChars = delegate { throw new NotImplementedException(); };
         }
         public SentenceSplitter(Trie trie,int baseDataLength)
         {
             FrequencyPerLength = () => { if (fpl_cache == null) fpl_cache = MethodsForTrie.FrequencyPerLength(trie); return fpl_cache; };
             Count = s => (int)trie.Count(s);
             BaseDataLength = () => baseDataLength;
+            NextChars = s => trie.NextChars(s);
         }
         public delegate void WordIdentifiedEventHandler(string word);
         public event WordIdentifiedEventHandler WordIdentified;
         BEMSmodel bm=null;
-        public async Task<List<string>> SplitAsync(string sa, int maxWordLength,double probRatio, double bemsRatio, ProbTypeEnum probType,bool logPortion,bool verbose=true)
+        public async Task<List<string>> SplitAsync(string s, int maxWordLength, double probRatio, double bemsRatio, ProbTypeEnum probType, bool logPortion, bool verbose = true)
         {
-            if (bemsRatio!=0&& bm == null)
+            if (bemsRatio != 0 && bm == null)
             {
                 bm = new BEMSmodel();
                 await bm.DownloadDictionaryAsync();
             }
-            return await Task.Run(() => Split(sa, maxWordLength,bm, FrequencyPerLength(), probRatio,bemsRatio,probType,logPortion,verbose));
+            return await Task.Run(() => Split(s, maxWordLength, bm
+                , probType == ProbTypeEnum.Entropy || probType == ProbTypeEnum.Entropy_L ? null : FrequencyPerLength()
+                , probRatio, bemsRatio, probType, logPortion, verbose));
         }
         public bool IsBuilt { get; private set; } = false;
         public List<string> SplittedWords { get; private set; }
-        public enum ProbTypeEnum { CdL, CdM, CxLdM, CmMdSTDE, sqCdS, sqCxLdS, lnCdS, lnCxLdS,Sigmoid }
+        public enum ProbTypeEnum { CdL, CdM, CxLdM, CmMdSTDE, sqCdS, sqCxLdS, lnCdS, lnCxLdS,Sigmoid,Entropy, Entropy_L }
         public const string probTypeString =
-                               "probType == ProbTypeEnum.CdL ? Math.Log(wordCount / (BaseDataLength - l + 1)) :                                                                            \n" +
-                               "probType == ProbTypeEnum.CdM ? Math.Log(wordCount / fpl[l].mean) :                                                                                         \n" +
-                               "probType == ProbTypeEnum.CxLdM ? Math.Log(wordCount / fpl[l].mean) * l :                                                                                   \n" +
-                               "probType == ProbTypeEnum.CmMdSTDE ? (Count(s.Substring(i, l)) - fpl[l].mean) / Math.Pow(fpl[l].stderr, 1.0) :                                              \n" +
-                               "probType == ProbTypeEnum.sqCdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (BaseDataLength / fpl[l].mean))) :                              \n" +
-                               "probType == ProbTypeEnum.sqCxLdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (BaseDataLength / fpl[l].mean))) * l :                        \n" +
-                               "probType == ProbTypeEnum.lnCdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (BaseDataLength / fpl[l].mean)))) :      \n" +
-                               "probType == ProbTypeEnum.lnCxLdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (BaseDataLength / fpl[l].mean)))) * l :\n" +
-                               "probType == ProbTypeEnum.Sigmoid ? 1.0 / (1.0 + Math.Exp(-(Count(s.Substring(i, l)) - fpl[l].mean) / fpl[l].stderr)) * l :                                 \n";
+                                    "probType == ProbTypeEnum.CdL ? Math.Log(wordCount / (BaseDataLength() - l + 1)) :                                                                            \n" +
+                                    "probType == ProbTypeEnum.CdM ? Math.Log(wordCount / fpl[l].mean) :                                                                                           \n" +
+                                    "probType == ProbTypeEnum.CxLdM ? Math.Log(wordCount / fpl[l].mean) * l :                                                                                     \n" +
+                                    "probType == ProbTypeEnum.CmMdSTDE ? (Count(s.Substring(i, l)) - fpl[l].mean) / Math.Pow(fpl[l].stderr, 1.0) :                                                \n" +
+                                    "probType == ProbTypeEnum.sqCdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (BaseDataLength() / fpl[l].mean))) :                              \n" +
+                                    "probType == ProbTypeEnum.sqCxLdS ? Math.Log((double)Math.Sqrt(wordCount) / (fpl[l].sqrtSum / (BaseDataLength() / fpl[l].mean))) * l :                        \n" +
+                                    "probType == ProbTypeEnum.lnCdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (BaseDataLength() / fpl[l].mean)))) :      \n" +
+                                    "probType == ProbTypeEnum.lnCxLdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (BaseDataLength() / fpl[l].mean)))) * l :\n" +
+                                    "probType == ProbTypeEnum.Sigmoid ? 1.0 / (1.0 + Math.Exp(-(Count(s.Substring(i, l)) - fpl[l].mean) / fpl[l].stderr)) * l :                                   \n" +
+                                    "probType == ProbTypeEnum.Entropy ? Entropy(s.Substring(i, l)) :                                                                                              \n" +
+                                    "probType == ProbTypeEnum.Entropy_L ? Entropy(s.Substring(i, l)) * l :                                                                                        \n";
+        double Entropy(string s)
+        {
+            var cs = NextChars(s);
+            var ns = cs.Select(c =>(double) Count(s + c));
+            var sum = ns.Sum();
+            return ns.Sum(v =>
+            {
+                if (v == 0) return 0;
+                var p = v / sum;
+                return -p * Math.Log(p);
+            });
+        }
+        public List<string> Split(string s, int maxWordLength,Func<double,double,double, double,double, double> method, bool verbose)
+        {
+            try
+            {
+                if (verbose) Trace.Indent();
+                if (verbose) Trace.WriteLine("Getting FPL...");
+                var fpl = FrequencyPerLength();
+                if (verbose) Trace.Write("OK");
+                int n = s.Length;
+                List<string> ans = new List<string>();
+                int[] pre = new int[n + 1], cnt = new int[n + 1];
+                double[] dp = new double[n + 1];
+                dp[0] = 0;
+                for (int i = 1; i <= n; i++) dp[i] = double.NegativeInfinity;
+                pre[0] = 1;//crutial to make 0-pre[0]<0 when tracing back
+                cnt[0] = 0;
+                if (verbose) Trace.WriteLine("DPing...");
+                int percentage = -1;
+                for (int i = 0; i < n; i++)
+                {
+                    Parallel.For(1, Math.Min(n - i, maxWordLength) + 1, (l) =>
+                    {
+                        double probLog = method(l,Count(s.Substring(i, l)), Entropy(s.Substring(i, l)), fpl[l].mean, fpl[l].stderr);//count,entropy
+                        var v = dp[i] + probLog;
+                        if (v > dp[i + l])
+                        {
+                            dp[i + l] = v;
+                            cnt[i + l] = cnt[i] + 1;
+                            pre[i + l] = l;
+                        }
+                    });
+                    if (i > 0 && (i + 1) * 100L / n > percentage)
+                    {
+                        if (verbose) Trace.WriteLine($"DPing... {++percentage}% Ex: {s.Substring(i - pre[i], pre[i])} scored {dp[i]} avg {(double)i / cnt[i]} words");
+                    }
+                }
+                if (verbose) Trace.WriteLine("Tracing back...");
+                List<int> idxs = new List<int>();
+                for (int i = n; i >= 0; i -= pre[i]) idxs.Add(i);
+                if (verbose) Trace.WriteLine("Picking words...");
+                percentage = -1;
+                for (int i = idxs.Count - 1; i > 0; i--)
+                {
+                    string _s = s.Substring(idxs[i], idxs[i - 1] - idxs[i]);
+                    WordIdentified?.Invoke(_s);
+                    ans.Add(_s);
+                    if ((idxs.Count - i + 1) * 100L / idxs.Count > percentage)
+                    {
+                        if (verbose) Trace.WriteLine($"Picking words... {++percentage}% Ex: {_s}");
+                    }
+                }
+                if (verbose) Trace.Write(" => OK");
+                SplittedWords = ans;
+                IsBuilt = true;
+                return ans;
+            }
+            finally { if (verbose) Trace.Unindent(); }
+        }
         public List<string> Split(string s, int maxWordLength, BEMSmodel bm,List<FPLtype>fpl, double probRatio, double bemsRatio, ProbTypeEnum probType, bool logPortion, bool verbose)
         {
             try
@@ -258,6 +335,8 @@ namespace WikiDataAnalysis
                                    probType == ProbTypeEnum.lnCdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (BaseDataLength() / fpl[l].mean)))) :
                                    probType == ProbTypeEnum.lnCxLdS ? Math.Log(Math.Max(double.Epsilon, (double)Math.Log(wordCount) / (fpl[l].logSum / (BaseDataLength() / fpl[l].mean)))) * l :
                                    probType == ProbTypeEnum.Sigmoid ? 1.0 / (1.0 + Math.Exp(-(Count(s.Substring(i, l)) - fpl[l].mean) / fpl[l].stderr)) * l :
+                                   probType == ProbTypeEnum.Entropy ? Entropy(s.Substring(i, l)) :
+                                   probType == ProbTypeEnum.Entropy_L ? Entropy(s.Substring(i, l)) * l :
                                    throw new Exception($"Unknown probType: {probType}"); // (Count(sa, i, l) - fpl[l].Item1) / Math.Pow(fpl[l].Item2, 1.0);
                                if (bemsRatio != 0)
                                {

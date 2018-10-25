@@ -28,8 +28,8 @@ namespace WikiDataAnalysis
             //sa.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
             this.Shown += Form1_Shown;
             var tc = new MyTabControl();
-            tc.TabPages.Add(new SATabPage());
             tc.TabPages.Add(new TrieTabPage());
+            tc.TabPages.Add(new SATabPage());
             tc.TabPages.Add(new ToolsTabPage());
             this.Controls.Add(tc);
         }

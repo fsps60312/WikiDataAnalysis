@@ -11,7 +11,7 @@ using System.IO;
 
 namespace WikiDataAnalysis
 {
-    class TrieTabPage:MyTabPage
+    partial class TrieTabPage:MyTabPage
     {
         MyTableLayoutPanel TLPmain = new MyTableLayoutPanel(1, 3, "P", "P2P2P"), TLPtop = new MyTableLayoutPanel(2, 1, "P2P", "P");
         MyTableLayoutPanel TLPctrl = new MyTableLayoutPanel(1, 11, "P", "PPPPPPPPAPP") { Dock = DockStyle.Top };
@@ -26,12 +26,43 @@ namespace WikiDataAnalysis
             CHBdebugMode = new MyCheckBox("Debug Mode") { Checked = true },
             CHBlogPortion = new MyCheckBox("Log Portion") { Checked = true },
             CHBsplit = new MyCheckBox("Split") { Checked = false };
-        int maxWordLength = 4;
-        double bemsRatio = 0;
-        double probRatio = 1;
+        const int default_maxWordLength = 4;
+        const double default_bemsRatio = 0;
+        const double default_probRatio = 1;
+        const int default_baseDataLength = -1;
+        const double default_decayRatio = 1.0;
+        int maxWordLength
+        {
+            get { return int.Parse(IFdata.GetField("maxWordLength")); }
+            set { SetIFdata("maxWordLength", value.ToString()); }
+        }
+        double bemsRatio
+        {
+            get { return int.Parse(IFdata.GetField("bemsRatio")); }
+            set { SetIFdata("bemsRatio", value.ToString()); }
+        }
+        double probRatio
+        {
+            get { return int.Parse(IFdata.GetField("probRatio")); }
+            set { SetIFdata("probRatio", value.ToString()); }
+        }
+        int baseDataLength
+        {
+            get { return int.Parse(IFdata.GetField("baseDataLength")); }
+            set { SetIFdata("baseDataLength", value.ToString()); }
+        }
+        double decayRatio
+        {
+            get { return double.Parse(IFdata.GetField("decayRatio")); }
+            set { SetIFdata("decayRatio", value.ToString()); }
+            }
+        void SetIFdata(string key,string value)
+        {
+            if (IFdata.InvokeRequired) IFdata.Invoke(new Action(() => IFdata.GetTextBox(key).Text = value));
+            else IFdata.GetTextBox(key).Text = value;
+        }
         SentenceSplitter.ProbTypeEnum probType = SentenceSplitter.ProbTypeEnum.Sigmoid;
         string data = null;
-        int baseDataLength;
         string txbDataFileContent = null;
         async Task NewData()
         {
@@ -182,14 +213,20 @@ namespace WikiDataAnalysis
                     {
                         ss.WordIdentified += d;
                         Trace.WriteLine("Splitting...");
-                        var ans = await ss.SplitAsync(
-                            string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : data) : TXBdata.Text,
-                            maxWordLength,
-                            probRatio,
-                            bemsRatio,
-                            probType,
-                            CHBlogPortion.Checked);
-                        Trace.WriteLine($"{ans.Count} words identified.");
+                        var mainInputs = string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : data) : TXBdata.Text;
+                        var inputs = mainInputs.Split(' ', '\r', '\n', '\t');
+                        long cnt = 0;
+                        foreach (var input in inputs)
+                        {
+                            cnt += (await ss.SplitAsync(
+                                input,
+                                maxWordLength,
+                                probRatio,
+                                bemsRatio,
+                                probType,
+                                CHBlogPortion.Checked)).Count;
+                        }
+                        Trace.WriteLine($"{cnt} words identified.");
                     }
                     catch (Exception error) { TXBout.Text = error.ToString(); }
                     finally { ss.WordIdentified -= d; }
@@ -199,7 +236,7 @@ namespace WikiDataAnalysis
             catch (Exception error) { TXBout.Text = error.ToString(); }
             finally { Trace.Unindent(); CHBsplit.CheckState = CheckState.Indeterminate; CHBsplit.Enabled = true; }
         }
-        private void TXBin_TextChanged(object sender, EventArgs e)
+        private async void TXBin_TextChanged(object sender, EventArgs e)
         {
             try
             {
@@ -208,6 +245,7 @@ namespace WikiDataAnalysis
                 switch (CBmethod.SelectedItem)
                 {
                     case "Count Word": TXBout.Text = CountWord(TXBin.Text); break;
+                    case "Cut by Code":string s = await CutByCode(TXBin.Text);if (s != null) TXBout.Text = s; break;
                     default: TXBout.Text = TXBin.Text; break;
                 }
             }
@@ -219,13 +257,89 @@ namespace WikiDataAnalysis
         }
         string CountWord(string dataInput)
         {
+            var getEntropy = new Func<string, double>(s =>
+            {
+                var cs = trie.NextChars(s);
+                var ns = cs.Select(c => (double)trie.Count(s + c));
+                var sum = ns.Sum();
+                return ns.Sum(v =>
+                {
+                    if (v == 0) return 0;
+                    var p = v / sum;
+                    return -p * Math.Log(p);
+                });
+            });
             StringBuilder ans = new StringBuilder();
             foreach (var _s in dataInput.Split('\n'))
             {
                 var s = _s.TrimEnd('\r');
-                ans.AppendLine($"{s}\t {trie.Count(s)}");
+                ans.AppendLine($"{s.PadRight(4, '　')}\t Count: {trie.Count(s)}\t Entropy: {getEntropy(s)}");
             }
             return ans.ToString();
+        }
+        System.Threading.SemaphoreSlim SemaphoreSlim_CutByCode = new System.Threading.SemaphoreSlim(1);
+        long counter_CutByCode = 0;
+        SentenceSplitter ss_CutByCode = null;
+        async Task<string> CutByCode(string dataInput)//the method: double(double C,double E) //count, entropy, return score
+        {
+            var counter = System.Threading.Interlocked.Increment(ref counter_CutByCode);
+            try
+            {
+                await SemaphoreSlim_CutByCode.WaitAsync();
+                if (counter != System.Threading.Interlocked.Read(ref counter_CutByCode)) return null;
+                const string namespaceName = "WikiDataAnalysis", className = "FooClass", methodName = "FooMethod";
+                string code =
+                    "using System;" +
+                   $"namespace {namespaceName}" +
+                    "{" +
+                   $"   class {className}" +
+                    "   {" +
+                   $"       public static double {methodName}(double L,double C,double E,double M,double S)" +
+                    "       {" +
+                   $"           {dataInput}" +
+                    "       }" +
+                    "   }" +
+                    "}";
+                System.Reflection.MethodInfo methodInfo;
+                try
+                {
+                    Trace.Indent();
+                    Trace.WriteLine($"Compiling... code length = {code.Length}");
+                    methodInfo = Utils.DynamicCompile.GetMethod(code, namespaceName, className, methodName, "System");
+                    var method = new Func<double,double, double, double, double, double>((l,c, e, m, s) => (double)methodInfo.Invoke(null, new object[] {l, c, e, m, s }));
+                    Trace.WriteLine("Splitting...");
+                    StringBuilder sb_ret = new StringBuilder();
+                    long cnt = 0;
+                    await Task.Run(() =>
+                    {
+                        var mainInputs = string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : data) : TXBdata.Text;
+                        var inputs = mainInputs.Split(' ', '\r', '\n', '\t');
+                        if (ss_CutByCode == null) ss_CutByCode = new SentenceSplitter(trie, baseDataLength);
+                        const int maxoutputLength = 10000;
+                        bool appending = true;
+                        int progress = 0, total_progress = inputs.Length;
+                        var lastUpdateTime = DateTime.MinValue;
+                        foreach (var input in inputs)
+                        {
+                            ++progress;
+                            if ((DateTime.Now - lastUpdateTime).TotalSeconds > 0.5)
+                            {
+                                Trace.WriteLine($"Splitting... {progress}/{total_progress}");
+                                lastUpdateTime = DateTime.Now;
+                            }
+                            var cutResult = ss_CutByCode.Split(input, maxWordLength, method, false);
+                            cnt += cutResult.Count;
+                            if (sb_ret.Length + cutResult.Sum(s => (long)s.Length) > maxoutputLength) appending = false;
+                            if (appending) sb_ret.AppendLine(string.Join(" ", cutResult));
+                        }
+                    });
+                    Trace.WriteLine($"{cnt} words identified.");
+                    return sb_ret.ToString();
+                }
+                catch (Exception error) { return error.ToString(); }
+                finally { Trace.Unindent(); }
+            }
+            finally { lock (SemaphoreSlim_CutByCode) SemaphoreSlim_CutByCode.Release(); }
         }
         Trie trie = new Trie();
         int counter = 0;
@@ -256,6 +370,7 @@ namespace WikiDataAnalysis
                     TLPctrl.Controls.Add(CBmethod, 0, row++);
                     {
                         CBmethod.Items.Add("Count Word");
+                        CBmethod.Items.Add("Cut by Code");
                     }
                     TLPctrl.Controls.Add(BTNexportList, 0, row++);
                     TLPctrl.Controls.Add(BTNsave, 0, row++);
@@ -266,9 +381,11 @@ namespace WikiDataAnalysis
                     TLPctrl.Controls.Add(CHBlogPortion, 0, row++);
                     TLPctrl.Controls.Add(IFdata, 0, row++);
                     {
-                        IFdata.AddField("maxWordLength", maxWordLength.ToString());
-                        IFdata.AddField("bemsRatio", bemsRatio.ToString());
-                        IFdata.AddField("probRatio", probRatio.ToString());
+                        IFdata.AddField("maxWordLength", default_maxWordLength.ToString());
+                        IFdata.AddField("bemsRatio", default_bemsRatio.ToString());
+                        IFdata.AddField("probRatio", default_probRatio.ToString());
+                        IFdata.AddField("baseDataLength", default_baseDataLength.ToString());
+                        IFdata.AddField("decayRatio", default_decayRatio.ToString());
                     }
                     TLPctrl.Controls.Add(CBprobType, 0, row++);
                     {
@@ -383,12 +500,25 @@ namespace WikiDataAnalysis
                         for (int i = 0; i < 1000 && i < words.Count; i++) TXBout.AppendText(words[i] + " ");
                         await Task.Run(() =>
                         {
-                            int progress = 0, total_progress = words.Count,percent=-1;
-                            foreach (var word in words)
+                            Trace.WriteLine($"Decaying... ratio = {decayRatio}");
+                            long cnt = 0;
+                            trie.Traverse(c => { }, () => { }, c => cnt += c);
+                            Trace.Write($"\t{cnt}→");
+                            trie.Decay(decayRatio);
+                            cnt = 0;
+                            trie.Traverse(c => { }, () => { }, c => cnt += c);
+                            Trace.Write($"{cnt} OK");
+                            try
                             {
-                                if (++progress * 100L / total_progress > percent) Trace.WriteLine($"{words.Count} words / {data.Length} chars identified. {++percent}%");
-                                trie.Insert(word);
+                                Trace.Indent();
+                                int progress = 0, total_progress = words.Count, percent = -1;
+                                foreach (var word in words)
+                                {
+                                    if (++progress * 100L / total_progress > percent) Trace.WriteLine($"{words.Count} words / {data.Length} chars inserted. {++percent}%");
+                                    trie.Insert(word);
+                                }
                             }
+                            finally { Trace.Unindent(); }
                         });
                         Trace.WriteLine("Saving Trie...");
                         var fileName = $"Trie {DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss.fffffff")}.sav";
