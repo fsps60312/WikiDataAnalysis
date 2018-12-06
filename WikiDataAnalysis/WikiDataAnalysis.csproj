@@ -85,6 +85,7 @@
     </Compile>
     <Compile Include="SentenceSplitter.cs" />
     <Compile Include="SimpleMethod.cs" />
+    <Compile Include="SocketService.cs" />
     <Compile Include="SuffixArray.cs" />
     <Compile Include="TestCode.cs" />
     <Compile Include="ToolsTabPage.cs">

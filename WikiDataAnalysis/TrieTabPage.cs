@@ -24,11 +24,9 @@ namespace WikiDataAnalysis
         MyInputField IFdata = new MyInputField();
         MyCheckBox
             CHBdebugMode = new MyCheckBox("Debug Mode") { Checked = true },
-            CHBlogPortion = new MyCheckBox("Log Portion") { Checked = true },
+            CHBverbose = new MyCheckBox("Verbose") { Checked = true },
             CHBsplit = new MyCheckBox("Split") { Checked = false };
         const int default_maxWordLength = 4;
-        const double default_bemsRatio = 0;
-        const double default_probRatio = 1;
         const int default_baseDataLength = -1;
         const double default_decayRatio = 1.0;
         int baseDataLength
@@ -203,10 +201,8 @@ namespace WikiDataAnalysis
                             cnt += (await ss.SplitAsync(
                                 input,
                                 maxWordLength,
-                                probRatio,
-                                bemsRatio,
                                 probType,
-                                CHBlogPortion.Checked)).Count;
+                                true)).Count;
                         }
                         Trace.WriteLine($"{cnt} words identified.");
                     }
@@ -363,12 +359,10 @@ namespace WikiDataAnalysis
                     TLPctrl.Controls.Add(BTNnew, 0, row++);
                     TLPctrl.Controls.Add(BTNiteration, 0, row++);
                     TLPctrl.Controls.Add(CHBdebugMode, 0, row++);
-                    TLPctrl.Controls.Add(CHBlogPortion, 0, row++);
+                    TLPctrl.Controls.Add(CHBverbose, 0, row++);
                     TLPctrl.Controls.Add(IFdata, 0, row++);
                     {
                         IFdata.AddField("maxWordLength", default_maxWordLength.ToString());
-                        IFdata.AddField("bemsRatio", default_bemsRatio.ToString());
-                        IFdata.AddField("probRatio", default_probRatio.ToString());
                         IFdata.AddField("baseDataLength", default_baseDataLength.ToString());
                         IFdata.AddField("decayRatio", default_decayRatio.ToString());
                     }
@@ -471,12 +465,8 @@ namespace WikiDataAnalysis
                                     ans.AddRange(ss.Split(
                                         ddd[i],
                                         maxWordLength,
-                                        null,
                                         fpl,
-                                        probRatio,
-                                        bemsRatio,
                                         probType,
-                                        CHBlogPortion.Checked,
                                         false));
                                 }
                                 lock (syncRoot) words.AddRange(ans);

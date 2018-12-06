@@ -8,42 +8,15 @@ using System.Windows.Forms;
 using System.IO;
 using System.Diagnostics;
 using Motivation;
+using System.Runtime.InteropServices;
 
 namespace WikiDataAnalysis
 {
     partial class OutputForm:Form
     {
-        /*public class MyTraceListener : DelimitedListTraceListener
-        {
-            public delegate void NewMsgEventHandler(string msg, int indent);
-            public event NewMsgEventHandler NewMsg;
-            public void MyWrite(string message)
-            {
-                NewMsg?.Invoke(message, this.IndentLevel);
-            }
-            public delegate void NewLineEventHandler(string msg, int indent);
-            public event NewLineEventHandler NewLine;
-            public void MyWriteLine(string message)
-            {
-                NewLine?.Invoke(message, this.IndentLevel);
-            }
-
-            public MyTraceListener(Stream stream):base(stream)
-            {
-                //var stream = new MemoryStream();
-                //this.Writer =new StreamWriter(stream,Encoding.UTF8);
-                new Thread(() =>
-                {
-                    byte[] buf = new byte[10];
-                    while (true)
-                    {
-                        int n = stream.Read(buf, 0, buf.Length);
-                        string s = Encoding.UTF8.GetString(buf, 0, n);
-                        MyWriteLine(s);
-                    }
-                }).Start();
-            }
-        }*/
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool AllocConsole();
         public class MyTraceListener : TraceListener
         {
             public delegate void NewMsgEventHandler(string msg, int indent);

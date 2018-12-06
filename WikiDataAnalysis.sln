@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DownloadWikiData", "Downloa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPU", "GPU\GPU.csproj", "{8B45D65B-9651-4BAE-813F-37BB983610E0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WikiDataAnalysis_WPF", "WikiDataAnalysis_WPF\WikiDataAnalysis_WPF.csproj", "{C9CA0468-AE54-432B-A711-5A98C45A6583}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +36,12 @@ Global
 		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Heavy Test|Any CPU.Build.0 = Release|Any CPU
 		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B45D65B-9651-4BAE-813F-37BB983610E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9CA0468-AE54-432B-A711-5A98C45A6583}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9CA0468-AE54-432B-A711-5A98C45A6583}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9CA0468-AE54-432B-A711-5A98C45A6583}.Heavy Test|Any CPU.ActiveCfg = Release|Any CPU
+		{C9CA0468-AE54-432B-A711-5A98C45A6583}.Heavy Test|Any CPU.Build.0 = Release|Any CPU
+		{C9CA0468-AE54-432B-A711-5A98C45A6583}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9CA0468-AE54-432B-A711-5A98C45A6583}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

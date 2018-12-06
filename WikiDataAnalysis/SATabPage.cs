@@ -8,6 +8,9 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.IO;
 using Motivation;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
 
 namespace WikiDataAnalysis
 {
@@ -23,16 +26,16 @@ namespace WikiDataAnalysis
             CHBreplaceWithEmptyExceptChinese = new MyCheckBox("Replace with Empty except Chinese") { Checked = true },
             CHBremoveEmpty = new MyCheckBox("Remove Empty") { Checked = true },
             CHBsplit = new MyCheckBox("Split") { Checked = false },
-            CHBbems = new MyCheckBox("BEMS") { Checked = false },
-            CHBlogPortion = new MyCheckBox("Log Portion") { Checked = true };
+            CHBverbose = new MyCheckBox("Verbose") { Checked = true };
         ComboBox CBmethod = new ComboBox { Dock = DockStyle.Fill, Font = new Font("微軟正黑體", 15) };
         ComboBox CBprobType = new ComboBox { Dock = DockStyle.Fill, Font = new Font("微軟正黑體", 10) };
         MyInputField IFdata = new MyInputField();
         int maxWordLength = 4;
-        double bemsRatio = 0;
-        double probRatio = 1;
-        SentenceSplitter.ProbTypeEnum probType = SentenceSplitter.ProbTypeEnum.CdL;
+        SentenceSplitter.ProbTypeEnum probType = SentenceSplitter.ProbTypeEnum.Hank;
         string txbDataFileContent = null;
+        readonly string sampleCode =
+                   $"//public static double FooMethod(string S,int N,Func<string,int> C)\r\n" +
+                    "return (double)C(S)/N";
         public SATabPage():base("SA")
         {
             //InitializeComponent();
@@ -47,6 +50,8 @@ namespace WikiDataAnalysis
                     {
                         CBmethod.Items.Add("Count Word");
                         CBmethod.Items.Add("List Words");
+                        CBmethod.Items.Add("Send Socket");
+                        CBmethod.Items.Add("Cut by Code");
                     }
                     TLPctrl.Controls.Add(BTNexportSA, 0, row++);
                     TLPctrl.Controls.Add(BTNsave, 0, row++);
@@ -56,12 +61,10 @@ namespace WikiDataAnalysis
                     TLPctrl.Controls.Add(CHBdebugMode, 0, row++);
                     TLPctrl.Controls.Add(CHBreplaceWithEmptyExceptChinese, 0, row++);
                     TLPctrl.Controls.Add(CHBremoveEmpty, 0, row++);
-                    TLPctrl.Controls.Add(CHBlogPortion, 0, row++);
+                    TLPctrl.Controls.Add(CHBverbose, 0, row++);
                     TLPctrl.Controls.Add(IFdata, 0, row++);
                     {
                         IFdata.AddField("maxWordLength", maxWordLength.ToString());
-                        IFdata.AddField("bemsRatio", bemsRatio.ToString());
-                        IFdata.AddField("probRatio", probRatio.ToString());
                     }
                     TLPctrl.Controls.Add(CBprobType, 0, row++);
                     {
@@ -76,7 +79,6 @@ namespace WikiDataAnalysis
                         };
                     }
                     TLPctrl.Controls.Add(CHBsplit, 0, row++);
-                    TLPctrl.Controls.Add(CHBbems, 0, row++);
                 }
             }
             TLPmain.Controls.Add(TXBout, 0, 1);
@@ -84,10 +86,11 @@ namespace WikiDataAnalysis
             //TXBdata.TextChanged += TXBdata_TextChanged;
             TXBdata.MouseDoubleClick += TXBdata_MouseDoubleClick;
             TXBin.TextChanged += TXBin_TextChanged;
+            TXBin.KeyDown += TXBin_KeyDown;
+            TXBin.ContextMenu = new ContextMenu(new[] { new MenuItem("sample code", delegate { TXBin.Text = sampleCode; }) });
             BTNexportSA.Click += BTNexportSA_Click;
             BTNexportList.Click += BTNexportList_Click;
             CHBsplit.CheckedChanged += CHBsplit_CheckedChanged;
-            CHBbems.CheckedChanged += CHBbems_CheckedChanged;
             BTNsave.Click += BTNsave_Click;
             BTNload.Click += BTNload_Click;
             BTNnew.Click += BTNnew_Click;
@@ -99,7 +102,176 @@ namespace WikiDataAnalysis
             //sa.StatusChanged += (s) => { this.Invoke(new Action(() => this.Text = $"[*] {s}")); };
             sa = new SuffixArray();
             ss = new SentenceSplitter(sa);
+            StartServices();
         }
+        private void StartServices()
+        {
+            SocketService.StartService(7122, s =>
+            {
+                try
+                {
+                    //MessageBox.Show($"Receive: {s}\r\nBytes: {string.Join(" ", Encoding.UTF8.GetBytes(s).Select(v => (int)v))}");
+                    return (sa.UpperBound(s) - sa.LowerBound(s)).ToString();
+                }
+                catch (Exception error) { return error.ToString(); }
+            });
+            bool fpl_isbuilt=false, fpl_isbuilding = false;
+            SocketService.StartService(7123, s =>
+             {
+                 try
+                 {
+                     int l = int.Parse(s);
+                     if (!sa.IsBuilt) return "Not yet, try again later!";
+                     if (!fpl_isbuilt)
+                     {
+                         if(!fpl_isbuilding)
+                         {
+                             fpl_isbuilding = true;
+                             var ans= SentenceSplitter.MethodsForSuffixArray.FrequencyPerLength(sa)[l].uniqCnt.ToString();
+                             fpl_isbuilt = true;
+                             return ans;
+                         }
+                         else return "Preprocessing, please wait!";
+                     }
+                     else
+                     {
+                         return SentenceSplitter.MethodsForSuffixArray.FrequencyPerLength(sa)[l].uniqCnt.ToString();
+                     }
+                 }
+                 catch (Exception error) { return error.ToString(); }
+             });
+        }
+
+        System.Threading.SemaphoreSlim SemaphoreSlim_CutByCode = new System.Threading.SemaphoreSlim(1);
+        long counter_CutByCode = 0;
+        SentenceSplitter ss_CutByCode;
+        async Task<string> CutByCode(string dataInput)//the method: double(double C,double E) //count, entropy, return score
+        {
+            var counter = System.Threading.Interlocked.Increment(ref counter_CutByCode);
+            try
+            {
+                await SemaphoreSlim_CutByCode.WaitAsync();
+                if (counter != System.Threading.Interlocked.Read(ref counter_CutByCode)) return null;
+                const string namespaceName = "WikiDataAnalysis", className = "FooClass", methodName = "FooMethod";
+                string code =
+                    "using System;" +
+                   $"namespace {namespaceName}" +
+                    "{" +
+                   $"   class {className}" +
+                    "   {" +
+                   $"       public static double {methodName}(string S,int N,Func<string,int> C)" +
+                    "       {" +
+                   $"           {dataInput}" +
+                    "       }" +
+                    "   }" +
+                    "}";
+                System.Reflection.MethodInfo methodInfo;
+                try
+                {
+                    Trace.Indent();
+                    Trace.WriteLine($"Compiling... code length = {code.Length}");
+                    methodInfo = Utils.DynamicCompile.GetMethod(code, namespaceName, className, methodName, "System");
+                    var method = new Func<string, int, Func<string, int>, double>((s, n, c) => (double)methodInfo.Invoke(null, new object[] { s, n, c }));
+                    Trace.WriteLine("Splitting...");
+                    var maxWordLength = int.Parse(IFdata.GetField("maxWordLength"));
+                    var probRatio = double.Parse(IFdata.GetField("probRatio"));
+                    var bemsRatio = double.Parse(IFdata.GetField("bemsRatio"));
+                    StringBuilder sb_ret = new StringBuilder();
+                    long cnt = 0;
+                    await Task.Run(() =>
+                    {
+                        var mainInputs = string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : data) : TXBdata.Text;
+                        var inputs = mainInputs.Split(' ', '\r', '\n', '\t');
+                        if (ss_CutByCode == null) ss_CutByCode = new SentenceSplitter(sa);
+                        const int maxoutputLength = 10000;
+                        bool appending = true;
+                        int progress = 0, total_progress = inputs.Length;
+                        var lastUpdateTime = DateTime.MinValue;
+                        foreach (var input in inputs)
+                        {
+                            ++progress;
+                            if ((DateTime.Now - lastUpdateTime).TotalSeconds > 0.5)
+                            {
+                                Trace.WriteLine($"Splitting... {progress}/{total_progress}");
+                                lastUpdateTime = DateTime.Now;
+                            }
+                            var cutResult = ss_CutByCode.Split(input, maxWordLength, method, false);
+                            cnt += cutResult.Count;
+                            if (sb_ret.Length + cutResult.Sum(s => (long)s.Length) > maxoutputLength) appending = false;
+                            if (appending) sb_ret.AppendLine(string.Join(" ", cutResult));
+                        }
+                    });
+                    Trace.WriteLine($"{cnt} words identified.");
+                    return sb_ret.ToString();
+                }
+                catch (Exception error) { return error.ToString(); }
+                finally { Trace.Unindent(); }
+            }
+            finally { lock (SemaphoreSlim_CutByCode) SemaphoreSlim_CutByCode.Release(); }
+        }
+        private async void TXBin_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && e.Control)
+            {
+                switch (CBmethod.SelectedItem)
+                {
+                    case "Send Socket":
+                        {
+                            try
+                            {
+                                Trace.Indent();
+                                Trace.WriteLine($"Initializing Socket...");
+                                var input = TXBin.Text.Split('\n').Select(s => s.TrimEnd('\r')).ToArray();
+                                var port = int.Parse(input[0]);
+                                TXBout.Text = $"port: {port}\r\nmsg: {input[1]}\r\n";
+                                Socket client_sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                                client_sock.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port));
+                                Trace.WriteLine($"Connected: {client_sock.Connected}");
+                                client_sock.Send(Encoding.UTF8.GetBytes(input[1]));
+                                client_sock.Send(new[] { (byte)'\0' });
+                                var thread = new Thread(() =>
+                                {
+                                    using (var stream = new NetworkStream(client_sock))
+                                    {
+                                        List<byte> data = new List<byte>();
+                                        const byte target = (byte)'\0';
+                                        while (true)
+                                        {
+                                            var _b = stream.ReadByte();
+                                            if (_b == -1)
+                                            {
+                                                Trace.WriteLine("Connection closed.");
+                                            }
+                                            var b = (byte)_b;
+                                            if (b == target)
+                                            {
+                                                Trace.WriteLine($"receive_length={data.Count}");
+                                                var s = Encoding.UTF8.GetString(data.ToArray());
+                                                TXBout.Invoke(new Action(() => TXBout.AppendText(s + "\r\n")));
+                                            }
+                                            else data.Add(b);
+                                        }
+                                    }
+                                });
+                                thread.Start();
+                                new Thread(() => { Thread.Sleep(1000 * 60); thread.Abort(); });
+                            }
+                            catch (Exception error)
+                            {
+                                TXBout.Text = error.ToString();
+                            }
+                            finally { Trace.Unindent(); }
+                        }
+                        break;
+                    case "Cut by Code":
+                        {
+                            string s = await CutByCode(TXBin.Text); if (s != null) TXBout.Text = s;
+                        }
+                        break;
+                }
+            }
+        }
+
         static void AddToMultiset<T>(SortedDictionary<T, int> dict, T v)
         {
             if (dict.ContainsKey(v)) dict[v]++;
@@ -244,34 +416,7 @@ namespace WikiDataAnalysis
             }
             finally { Trace.Unindent(); }
         }
-
-        private async void CHBbems_CheckedChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                if (CHBbems.Checked)
-                {
-                    if (ss.IsBuilt)
-                    {
-                        await PerformBEMS();
-                    }
-                }
-            }
-            catch (Exception error) { TXBout.Text = error.ToString(); }
-        }
-        private async Task PerformBEMS()
-        {
-            try
-            {
-                Trace.Indent();
-                CHBbems.Enabled = false;
-                MessageBox.Show("BEMS!");
-                await Task.Delay(1000);
-                MessageBox.Show("YA!");
-            }
-            catch (Exception error) { TXBout.Text = error.ToString(); }
-            finally { Trace.Unindent(); CHBbems.CheckState = CheckState.Indeterminate; CHBbems.Enabled = true; }
-        }
+        
 
         private async void CHBsplit_CheckedChanged(object sender, EventArgs e)
         {
@@ -280,12 +425,9 @@ namespace WikiDataAnalysis
                 if (CHBsplit.Checked)
                 {
                     maxWordLength = int.Parse(IFdata.GetField("maxWordLength"));
-                    probRatio = double.Parse(IFdata.GetField("probRatio"));
-                    bemsRatio = double.Parse(IFdata.GetField("bemsRatio"));
                     if (sa.IsBuilt)
                     {
                         await PerformSplit();
-                        CHBbems_CheckedChanged(null, null);
                     }
                 }
             }
@@ -321,10 +463,8 @@ namespace WikiDataAnalysis
                         var ans = await ss.SplitAsync(
                             string.IsNullOrWhiteSpace(TXBdata.Text) ? (txbDataFileContent != null ? txbDataFileContent : sa.S) : TXBdata.Text,
                             maxWordLength,
-                            probRatio,
-                            bemsRatio,
                             probType,
-                            CHBlogPortion.Checked);
+                            CHBverbose.Checked);
                         Trace.WriteLine($"{ans.Count} words identified.");
                     }
                     catch (Exception error) { TXBout.Text = error.ToString(); }
@@ -617,6 +757,9 @@ namespace WikiDataAnalysis
                 {
                     case "List Words": TXBout.Text = ListWords(TXBin.Text); break;
                     case "Count Word": TXBout.Text = CountWord(TXBin.Text); break;
+                    case "Send Socket":
+                    case "Cut by Code":
+                        TXBout.Text = "Press Ctrl+Enter to send";break;
                     default: TXBout.Text = TXBin.Text; break;
                 }
             }

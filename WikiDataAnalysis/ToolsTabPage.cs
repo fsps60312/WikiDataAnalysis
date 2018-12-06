@@ -9,11 +9,33 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using System.Net;
+using System.Net.Sockets;
+using Motivation;
 
 namespace WikiDataAnalysis
 {
     class ToolsTabPage:MyTabPage
     {
+        class TextForm: Form
+        {
+            MyTextBox textBox = new MyTextBox(true);
+            public new string Text
+            {
+                get { return textBox.Text; }
+                set { textBox.Text = value; }
+            }
+            public void AppendText(string text)
+            {
+                textBox.AppendText(text);
+            }
+            public TextForm(string title="")
+            {
+                base.Text = title;
+                this.Size = new System.Drawing.Size(800, 500);
+                this.Controls.Add(textBox);
+            }
+        }
         Stream Open()
         {
             var fd = new OpenFileDialog();
@@ -72,7 +94,7 @@ namespace WikiDataAnalysis
             {
                 int i = _;
                 var b = new MyButton(s[i].ToString());
-                b.Click +=async delegate
+                b.Click +=delegate
                 {
                     b.Enabled = false;
                     f.Enabled = false;
@@ -92,6 +114,53 @@ namespace WikiDataAnalysis
         }
         void InitializeButtons(List<Tuple<string, Action>>bs)
         {
+            bs.Add(new Tuple<string, Action>("Send Socket", async () =>
+             {
+                 int port = int.Parse(Microsoft.VisualBasic.Interaction.InputBox("socket port?", "", "7122"));
+                 Socket client_sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                 client_sock.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port));
+                 Trace.WriteLine($"Connected: {client_sock.Connected}");
+                 List<byte> send_data = new List<byte>();
+                 using (var stream = Open())
+                 {
+                     if (stream == null) return;
+                     byte[] buf = new byte[4096];
+                     for (int n = 0; (n = stream.Read(buf, 0, buf.Length)) != 0;)
+                     {
+                         for (int i = 0; i < n; i++) send_data.Add(buf[i]);
+                     }
+                 }
+                 client_sock.Send(send_data.ToArray());
+                 var f = new TextForm($"Receive from socket: port = {port}");
+                 f.Show();
+                 var thread = new Thread(() =>
+                 {
+                     using (var stream = new NetworkStream(client_sock))
+                     {
+                         List<byte> data = new List<byte>();
+                         const byte target = (byte)'\0';
+                         while (true)
+                         {
+                             var _b = stream.ReadByte();
+                             if (_b == -1)
+                             {
+                                 Trace.WriteLine("Connection closed.");
+                             }
+                             var b = (byte)_b;
+                             if (b == target)
+                             {
+                                 Trace.WriteLine($"receive_length={data.Count}");
+                                 var s = Encoding.UTF8.GetString(data.ToArray());
+                                 f.Invoke(new Action(() => f.AppendText(s + "\r\n")));
+                                 data.Clear();
+                             }
+                             else data.Add(b);
+                         }
+                     }
+                 });
+                 thread.Start();
+                 new Thread(() => { Thread.Sleep(1000 * 60); thread.Abort(); });
+             }));
             bs.Add(new Tuple<string, Action>("Convert Encoding",async () =>
              {
                  Encoding encodingSource, encodingTarget;

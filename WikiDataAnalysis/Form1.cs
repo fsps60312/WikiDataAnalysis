@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using Motivation;
 using System.IO;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace WikiDataAnalysis
 {
