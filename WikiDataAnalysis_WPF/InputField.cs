@@ -8,19 +8,35 @@ using System.Windows;
 
 namespace WikiDataAnalysis_WPF
 {
-    class InputField:Grid
+    class InputField : StackPanel
     {
         public InputField()
         {
         }
         Dictionary<string, TextBox> textBoxes = new Dictionary<string, TextBox>();
+        public bool Contains(string key) { return textBoxes.ContainsKey(key); }
+        public TextBox this[string key]
+        {
+            get { return textBoxes[key]; }
+        }
         public void AddField(string title,string content)
         {
             MyLib.Assert(!textBoxes.ContainsKey(title));
-            this.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
-            var textBox = new TextBox();
+            var textBox = new TextBox { Text = content };
             textBoxes.Add(title, textBox);
-            this.Children.Add(textBox);
+            this.Children.Add(new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)},
+                    new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)}
+                },
+                Children =
+                {
+                    new Label{ Content=title}.Set(0,0),
+                    textBox.Set(0,1)
+                }
+            });
         }
     }
 }

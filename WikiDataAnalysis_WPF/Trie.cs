@@ -72,30 +72,27 @@ namespace WikiDataAnalysis_WPF
             }
             return CH[u].Keys.ToList();
         }
-        public async Task BuildAsync(string maindata, int maxWordLength)
+        public void Build(string maindata, int maxWordLength)
         {
-            await Log.SubTask(async() =>
+            Log.SubTask(() =>
             {
                 Clear();
-                await Task.Run(() =>
+                int percent = -1;
+                var dataa = maindata.Split(' ', '\r', '\n');
+                long progress = 0, total_progress = dataa.Sum(s => (long)s.Length);
+                foreach (var data in dataa)
                 {
-                    int percent = -1;
-                    var dataa = maindata.Split(' ', '\r', '\n');
-                    long progress = 0, total_progress = dataa.Sum(s => (long)s.Length);
-                    foreach (var data in dataa)
+                    for (int i = 0; i < data.Length; i++, progress++)
                     {
-                        for (int i = 0; i < data.Length; i++, progress++)
+                        if ((progress + 1) * 100L / total_progress > percent)
                         {
-                            if ((progress + 1) * 100L / total_progress > percent)
-                            {
-                                percent++;
-                                Log.WriteLine($"Trie.BuildAsync: {percent}%");
-                            }
-                            string s = data.Substring(i, Math.Min(maxWordLength, data.Length - i));
-                            InsertNonemptySuffixes(s);
+                            percent++;
+                            Log.WriteLine($"Trie.BuildAsync: {percent}%");
                         }
+                        string s = data.Substring(i, Math.Min(maxWordLength, data.Length - i));
+                        InsertNonemptySuffixes(s);
                     }
-                });
+                }
                 Log.WriteLine("Trie.BuildAsync: OK");
                 _IsBuilt = true;
             });

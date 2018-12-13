@@ -22,8 +22,9 @@ namespace WikiDataAnalysis_WPF
     public partial class MainWindow : MonitorKeysWindow
     {
         public new static Func<Key, bool> IsDown = k => false;
-        public MainWindow()
+        public MainWindow():base()
         {
+            //MessageBox.Show("Hi");
             IsDown = k => base.IsDown(k);
             InitializeComponent();
             Trace.UseGlobalLock = false;

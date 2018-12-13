@@ -13,18 +13,18 @@ namespace WikiDataAnalysis_WPF
 {
     static class MyLib
     {
-        public static UIElement Do(this UIElement uIElement,Action<UIElement> action)
+        public static UIElement Do(this UIElement uIElement, Action<UIElement> action)
         {
             action(uIElement);
             return uIElement;
         }
-        public static UIElement Set(this UIElement uIElement,int row,int column)
+        public static UIElement Set(this UIElement uIElement, int row, int column)
         {
             Grid.SetRow(uIElement, row);
             Grid.SetColumn(uIElement, column);
             return uIElement;
         }
-        public static UIElement SetSpan(this UIElement uIElement,int rowSpan,int columnSpan)
+        public static UIElement SetSpan(this UIElement uIElement, int rowSpan, int columnSpan)
         {
             Grid.SetRowSpan(uIElement, rowSpan);
             Grid.SetColumnSpan(uIElement, columnSpan);
@@ -36,48 +36,59 @@ namespace WikiDataAnalysis_WPF
         {
             return '\u4e00' <= c && c <= '\u9fff';
         }
-        public static Stream Open()
+        public static string Open()
         {
             var fd = new OpenFileDialog();
             //fd.FileName = "wiki.sav";
             if (fd.ShowDialog() == true)
             {
-                return fd.OpenFile();
+                return fd.FileName;
             }
             return null;
         }
-        public static Stream Save()
+        public static string Save()
         {
             var sd = new SaveFileDialog();
             if (sd.ShowDialog() == true)
             {
-                return sd.OpenFile();
+                return sd.FileName;
             }
             return null;
         }
-        public static void OpenSave(Action<Stream, Stream> action)
+        //public static Stream OpenStream()
+        //{
+        //    var fd = new OpenFileDialog();
+        //    //fd.FileName = "wiki.sav";
+        //    if (fd.ShowDialog() == true)
+        //    {
+        //        return fd.OpenFile();
+        //    }
+        //    return null;
+        //}
+        //public static Stream SaveStream()
+        //{
+        //    var sd = new SaveFileDialog();
+        //    if (sd.ShowDialog() == true)
+        //    {
+        //        return sd.OpenFile();
+        //    }
+        //    return null;
+        //}
+        public static void OpenSave(Action<string, string> action)
         {
-            using (var fs = Open())
-            {
-                if (fs == null) return;
-                using (var ss = Save())
-                {
-                    if (ss == null) return;
-                    action(fs, ss);
-                }
-            }
+            var fs = Open();
+            if (fs == null) return;
+            var ss = Save();
+            if (ss == null) return;
+            action(fs, ss);
         }
-        public static async Task OpenSave(Func<Stream, Stream, Task> action)
+        public static async Task OpenSave(Func<string, string, Task> action)
         {
-            using (var fs = Open())
-            {
-                if (fs == null) return;
-                using (var ss = Save())
-                {
-                    if (ss == null) return;
-                    await action(fs, ss);
-                }
-            }
+            var fs = Open();
+            if (fs == null) return;
+            var ss = Save();
+            if (ss == null) return;
+            await action(fs, ss);
         }
         public static void Assert(bool condition) { Trace.Assert(condition); }
     }

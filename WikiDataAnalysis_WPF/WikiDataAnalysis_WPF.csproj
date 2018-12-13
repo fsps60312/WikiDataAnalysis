@@ -59,10 +59,13 @@
     <Compile Include="Log.cs" />
     <Compile Include="MonitorKeysWindow.cs" />
     <Compile Include="MyLib.cs" />
+    <Compile Include="RadioPanel.cs" />
     <Compile Include="SentenceSplitter.cs" />
     <Compile Include="ToolsTabItem.cs" />
     <Compile Include="Trie.cs" />
     <Compile Include="TrieTabItem.cs" />
+    <Compile Include="TrieTabItem.TaskQueueStackPanel.cs" />
+    <Compile Include="TrieTabItem_UI.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

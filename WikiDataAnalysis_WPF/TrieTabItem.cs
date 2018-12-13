@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,56 +9,17 @@ using System.IO;
 
 namespace WikiDataAnalysis_WPF
 {
-    class TrieTabItem:TabItem
+    partial class TrieTabItem:TabItem
     {
-        TextBox textBox_in, textBox_out, textBox_data;
-        Button button_exportList,button_save,button_load,button_new,button_performIteration;
-        CheckBox checkBox_split,checkBox_debugMode;
-        string data;
-        int baseDataLength;
         Trie trie = new Trie();
+        string mainData = null;
+        private void Button_split_Click(object sender, RoutedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
         void ProcessInput(string text)
         {
-        }
-        void InitializeViews()
-        {
-            textBox_in = new TextBox();
-            textBox_out = new TextBox();
-            textBox_data = new TextBox();
-            button_exportList = new Button { Content = "Export List" };
-            button_load = new Button { Content = "Load" };
-            button_save = new Button { Content = "Save" };
-            checkBox_split = new CheckBox { Content = "Split" };
-            checkBox_debugMode = new CheckBox { Content = "Debug Mode", IsChecked = true };
-            textBox_in.KeyDown += (sender, e) => { if (e.Key == Key.Enter && MainWindow.IsDown(Key.LeftCtrl)) ProcessInput(textBox_in.Text); };
-            textBox_data.MouseDoubleClick += TextBox_data_MouseDoubleClick;
-            button_exportList.Click += Button_exportList_Click;
-            checkBox_split.Checked += CheckBox_split_Checked;
-            this.Content = new Grid
-            {
-                RowDefinitions =
-                {
-                    new RowDefinition{Height=new GridLength(2,GridUnitType.Star)},
-                    new RowDefinition{Height=new GridLength(2,GridUnitType.Star)},
-                    new RowDefinition{Height=new GridLength(1,GridUnitType.Star)}
-                },
-                Children =
-                {
-                    new Grid
-                    {
-                    }.Set(0,0),
-                    new Grid
-                    {
-                    }.Set(0,1),
-                    new Grid
-                    {
-                    }.Set(0,2)
-                }
-            };
-            button_load.Click += Button_load_Click;
-            button_save.Click += Button_save_Click;
-            button_new.Click += Button_new_Click;
-            button_performIteration.Click += Button_performIteration_Click;
         }
 
         private void Button_performIteration_Click(object sender, RoutedEventArgs e)
@@ -69,106 +29,163 @@ namespace WikiDataAnalysis_WPF
 
         private async void Button_new_Click(object sender, RoutedEventArgs e)
         {
-            await Log.SubTask(() => NewData());
+            var s = MyLib.Open();
+            if (s == null) return;
+            var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButton.YesNo);
+            if (encodingSelected == MessageBoxResult.None) return;
+            Log.Assert(encodingSelected == MessageBoxResult.Yes || encodingSelected == MessageBoxResult.No);
+            var encoding = encodingSelected == MessageBoxResult.Yes ? Encoding.UTF8 : Encoding.Unicode;
+            int maxWordLength = int.Parse(inputField_data["maxWordLength"].Text);
+            bool debugMode = (bool)checkBox_debugMode.IsChecked;
+            int processMethod = radioPanel_newData.SelectedIndex;
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"BuildDataAsync({s},{encoding},{processMethod},{maxWordLength},{debugMode})", new Func<Task>(async () => await Task.Run(() => BuildData(
+                new FileStream(s, FileMode.Open, FileAccess.Read),
+                encoding,
+                processMethod,
+                maxWordLength,
+                debugMode))));
         }
 
-        private void Button_save_Click(object sender, RoutedEventArgs e)
+        private async void Button_save_Click(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException();
-        }
-
-        private void Button_load_Click(object sender, RoutedEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void CheckBox_split_Checked(object sender, RoutedEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void Button_exportList_Click(object sender, RoutedEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void TextBox_data_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-        async Task NewData()
-        {
-            await Log.SubTask(async () =>
+            var fileName = MyLib.Save();
+            if (fileName == null) return;
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"Save Trie {fileName}", new Func<Task>(async () =>
             {
-                using (var s = MyLib.Open())
+                Log.WriteLine("Saving trie...");
+                await Task.Run(() => trie.Save(new FileStream(fileName, FileMode.Create, FileAccess.Write)));
+                Log.Write(" OK");
+            }));
+        }
+
+        private async void Button_load_Click(object sender, RoutedEventArgs e)
+        {
+            var fileName = MyLib.Open();
+            if (fileName == null) return;
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"Read Trie {fileName}", new Func<Task>(async () =>
+            {
+                Log.WriteLine("Loading trie...");
+                await Task.Run(() => trie.Load(new FileStream(fileName, FileMode.Open, FileAccess.Read)));
+                Log.Write(" OK");
+            }));
+        }
+
+
+        private async void Button_exportList_Click(object sender, RoutedEventArgs e)
+        {
+            var fileName = MyLib.Save();
+            if (fileName == null) return;
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"Export Word List {fileName}", new Func<Task>(async () =>
+            {
+                Log.WriteLine("Exporting Word List...");
+                await trie.ExportList(new FileStream(fileName, FileMode.Create, FileAccess.Write));
+                Log.Write(" OK");
+            }));
+        }
+
+        private async void TextBox_data_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            var s = MyLib.Open();
+            if (s == null) return;
+            var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButton.YesNo);
+            if (encodingSelected == MessageBoxResult.None) return;
+            Log.Assert(encodingSelected == MessageBoxResult.Yes || encodingSelected == MessageBoxResult.No);
+            var encoding = encodingSelected == MessageBoxResult.Yes ? Encoding.UTF8 : Encoding.Unicode;
+            int dataPreprocessMethodId = radioPanel_newData.SelectedIndex;
+            bool debugMode = (bool)checkBox_debugMode.IsChecked;
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"Read Data {s} {encoding} {debugMode} {dataPreprocessMethodId}", new Func<Task>(async () =>
+            {
+                mainData = await Task.Run(() => ReadTextStream(new FileStream(s, FileMode.Open, FileAccess.Read), encoding, debugMode));
+                await Task.Run(() => ProcessText(ref mainData, dataPreprocessMethodId));
+                Log.Write(" OK");
+            }));
+        }
+        string ReadTextStream(Stream s,Encoding encoding,bool debugMode)
+        {
+            var sb = new StringBuilder();
+            using (StreamReader reader = new StreamReader(s, encoding))
+            {
+                Log.WriteLine("Reading...");
+                bool warning = true;
+                for (char[] buf = new char[1024 * 1024]; ;)
                 {
-                    if (s == null)
+                    int n = reader.ReadBlock(buf, 0, buf.Length);
+                    if (n == 0) break;
+                    for (int i = 0; i < n; i++)
                     {
-                        MessageBox.Show("File not opened");
+                        sb.Append(buf[i]);
+                        const int stringMaxLength = int.MaxValue / 2 - 100;
+                        if (warning&& sb.Length > stringMaxLength)
+                        {
+                            warning = false;
+                            if (MessageBox.Show($"Reach C# string max length: {sb.Length}, break?", "Warning", MessageBoxButton.OKCancel) == MessageBoxResult.OK) goto index_skipRead;
+                        }
+                    }
+                    Log.WriteLine($"Reading...{s.Position}/{s.Length}");
+                    if (debugMode && s.Position > 1000000) break;
+                }
+                index_skipRead:;
+                return sb.ToString();
+            }
+        }
+        void ProcessText(ref string data, int methodId)
+        {
+            var sb = new StringBuilder();
+            switch (methodId)
+            {
+                case 0:return;
+                case 1://non-chinese => space
+                    {
+                        int percentage = -1;
+                        long progress = 0, total_progress = data.Length;
+                        char last_char = '\0';
+                        foreach (char c in data)
+                        {
+                            if (++progress * 100 / total_progress > percentage) Log.WriteLine($"Preprocessing {++percentage}%: non-chinese => space");
+                            if (!MyLib.IsChinese(c))
+                            {
+                                if (last_char != ' ') sb.Append(last_char = ' ');
+                            }
+                            else sb.Append(last_char = c);
+                        }
+                        data = sb.ToString();
                         return;
                     }
-                    var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButton.YesNo);
-                    if (encodingSelected == MessageBoxResult.None) return;
-                    Log.Assert(encodingSelected == MessageBoxResult.Yes || encodingSelected == MessageBoxResult.No);
-                    using (StreamReader reader = new StreamReader
-                        (s, encodingSelected == MessageBoxResult.Yes ? Encoding.UTF8 : Encoding.Unicode))
+                case 2://non-chinese => removed
                     {
-                        Log.WriteLine("Reading...");
-                        var sb = new StringBuilder();
-                        data = "";
-                        for (char[] buf = new char[1024 * 1024]; ;)
+                        int percentage = -1;
+                        long progress = 0, total_progress = data.Length;
+                        char last_char = '\0';
+                        foreach (char c in data)
                         {
-                            int n = await reader.ReadAsync(buf, 0, buf.Length);
-                            if (n == 0) break;
-                            for (int i = 0; i < n; i++)
-                            {
-                                sb.Append(buf[i]);
-                                const int stringMaxLength = int.MaxValue / 2 - 100;
-                                if (sb.Length > stringMaxLength)
-                                {
-                                    sb.Remove(stringMaxLength, sb.Length - stringMaxLength);
-                                    if (MessageBox.Show($"Reach C# string max length: {sb.Length}, break?", "Warning", MessageBoxButton.OKCancel) == MessageBoxResult.OK) goto index_skipRead;
-                                    else
-                                    {
-                                        data += sb.ToString();
-                                        sb.Clear();
-                                    }
-                                }
-                            }
-                            Log.WriteLine($"Reading...{s.Position}/{s.Length}");
-                            if (checkBox_debugMode.IsChecked==true&& s.Position > 1000000) break;
+                            if (++progress * 100 / total_progress > percentage) Log.WriteLine($"Preprocessing {++percentage}%: non-chinese => space");
+                            if (MyLib.IsChinese(c)) sb.Append(last_char = c);
                         }
-                        index_skipRead:;
-                        data += sb.ToString();//.Replace("\r\n"," ");
+                        data = sb.ToString();
+                        return;
                     }
-                    Log.WriteLine($"{data.Length} charactors read.");
-                    textBox_out.Text = data.Length > 10000 ? data.Remove(10000) : data;
-                    Log.Write(" Counting baseDataLength...");
-                    await Task.Run(() =>
-                    {
-                        baseDataLength = data.Count(c => MyLib.IsChinese(c));
-                    });
-                    Log.WriteLine($"baseDataLength: {baseDataLength}");
-                    await BuildDataAsync();
-                    CheckBox_split_Checked(null, null);
-                    //BTNsplit_Click(null, null);
-                }
-            });
+                default: throw new Exception($"Unknown methodId: {methodId}");
+            }
         }
-        private async Task BuildDataAsync()
+        void BuildData(Stream s,Encoding encoding,int dataPreprocessMethodId,int maxWordLength,bool debugMode)
         {
-            await Log.SubTask(async() =>
+            Log.SubTask( () =>
             {
-                Log.WriteLine("TrieTabPage.BuildData");
-                int maxWordLength = int.Parse(IFdata.Get("maxWordLength"));
-                await trie.BuildAsync(data, maxWordLength);
+                Log.AppendLog($"maxWordLength: {maxWordLength}");
+                int methodId = radioPanel_newData.SelectedIndex;
+                Log.WriteLine($"Data preprocessing method: {dataPreprocessMethodId}");
+                string data = ReadTextStream(s, encoding, debugMode);
+                Log.AppendLog($"Charactors Read = {data.Length}");
+                Log.WriteLine("Preprocessing Data...");
+                ProcessText(ref data, dataPreprocessMethodId);
+                OutputText = data.Length > 10000 ? data.Remove(10000) : data;
+                long baseDataLength = data.Length;
+                Log.AppendLog($"baseDataLength: {baseDataLength}");
+                Dispatcher.Invoke(() => inputField_data["baseDataLength"].Text = baseDataLength.ToString());
+                Log.WriteLine("TrieTabPage.BuildData...");
+                trie.Build(data, maxWordLength);
+                Log.Write(" OK");
             });
-        }
-
-        public TrieTabItem()
-        {
-            this.Header = "Trie";
-            Log.AppendLog("TrieTabItem OK.");
         }
     }
 }

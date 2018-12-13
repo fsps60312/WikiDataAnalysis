@@ -62,7 +62,7 @@ namespace WikiDataAnalysis_WPF
                         Log.WriteLine($"Converting: {encodingSource} → {encodingTarget}");
                         using (var reader = new StreamReader(fs, encodingSource))
                         {
-                            using (var writer = new StreamWriter(ss, encodingTarget))
+                            using (var writer = new StreamWriter(ss,false, encodingTarget))
                             {
                                 const int bufLen = 1 << 20;
                                 var buf = new char[bufLen];
@@ -91,9 +91,9 @@ namespace WikiDataAnalysis_WPF
                  {
                      Log.WriteLine($"Reading... file size: {fs.Length}");
                      var trie = new Trie();
-                     await Task.Run(() => trie.Load(fs));
+                     await Task.Run(() => trie.Load(new FileStream(fs, FileMode.Open, FileAccess.Read)));
                      Log.WriteLine("Exporting...");
-                     await trie.ExportList(ss);
+                     await trie.ExportList(new FileStream(ss, FileMode.Create, FileAccess.Write));
                      Log.WriteLine($"Done");
                  }));
             }));
