@@ -13,10 +13,10 @@ namespace DownloadWikiData
 {
     class Program
     {
-        const string titleListUrl = "https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles-multistream-index.txt.bz2";
-        const string curlUrl = "https://zh.wikipedia.org/zh-tw/";//+"数学";
-        //const string titleListUrl = "https://dumps.wikimedia.org/enwiki/20190201/enwiki-20190201-pages-articles-multistream-index.txt.bz2";
-        //const string curlUrl = "https://en.wikipedia.org/wiki/";//+"数学";
+        //const string titleListUrl = "https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles-multistream-index.txt.bz2";
+        //const string curlUrl = "https://zh.wikipedia.org/zh-tw/";//+"数学";
+        const string titleListUrl = "https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles-multistream-index.txt.bz2";
+        const string curlUrl = "https://en.wikipedia.org/wiki/";//+"数学";
         static async Task<List<string>>GetTitleList()
         {
             try
@@ -242,13 +242,14 @@ namespace DownloadWikiData
         static void Main(string[] args)
         {
             Console.WriteLine(DateTime.Now.ToString(DateTimeFormatString));
-            {
-                //var webContent = new StreamReader("content.html").ReadToEnd();
-                //webContent = new Runner().Run(webContent.Replace("<", " <"));
-                //Console.WriteLine(webContent);
-                //Console.WriteLine("-----Suspended-----");
-                //Console.ReadLine();
-            }
+            //if(true)
+            //{
+            //    var webContent = new StreamReader("tmp.html").ReadToEnd();
+            //    webContent = new Runner().Run(webContent.Replace("<", " <"));
+            //    Console.WriteLine(webContent);
+            //    Console.WriteLine("-----Suspended-----");
+            //    Console.ReadLine();
+            //}
             Run();
             Console.ReadLine();
         }

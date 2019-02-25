@@ -25,7 +25,7 @@ namespace DownloadWikiData
             string tagName = "";
             while ((c = Read()) != '>') tagName += c;
             tagName = tagName.Trim();
-            //Console.WriteLine($"TagEnd:   {tagName}");
+            //Console.WriteLine($"{string.Concat(Enumerable.Repeat("| ", Math.Max(0, tags.Count - 1)))}TagEnd:   {tagName} ({contentIndex})");
             for (int i = tags.Count - 1; ; i--)
             {
                 if(i==-1)
@@ -113,7 +113,7 @@ namespace DownloadWikiData
             contentIndex--;
             Tag tag = new Tag();
             tag.name = tagName = tagName.Trim();
-            //Console.WriteLine($"TagStart: {tag.name}");
+            //Console.WriteLine($"{string.Concat(Enumerable.Repeat("| ",  tags.Count))}TagStart: {tag.name} ({contentIndex})");
             switch (tag.name)
             {
                 case "script":
@@ -133,20 +133,20 @@ namespace DownloadWikiData
                                 case '}':Trace.Assert(brackets.Pop() == '{');break;
                                 case ')':Trace.Assert(brackets.Pop() == '(');break;
                                 case '"':
-                                    if (brackets.Count > 0)
+                                    while(true)
                                     {
-                                        if (brackets.Peek() == '"') brackets.Pop();
-                                        else if (brackets.Peek() == '\'') break;
+                                        c = Read();
+                                        if (c == '\\') c = Read();
+                                        else if (c == '"') break;
                                     }
-                                    else brackets.Push(c);
                                     break;
                                 case '\'':
-                                    if (brackets.Count > 0)
+                                    while (true)
                                     {
-                                        if (brackets.Peek() == '\'') brackets.Pop();
-                                        else if (brackets.Peek() == '"') break;
+                                        c = Read();
+                                        if (c == '\\') c = Read();
+                                        else if (c == '\'') break;
                                     }
-                                    else brackets.Push(c);
                                     break;
                             }
                             if (brackets.Count == 0 && s.EndsWith("</script>"))
