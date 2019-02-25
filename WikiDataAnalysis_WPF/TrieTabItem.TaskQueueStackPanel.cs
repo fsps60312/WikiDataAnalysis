@@ -59,6 +59,7 @@ namespace WikiDataAnalysis_WPF
             async Task CheckTaskQueue()
             {
                 if (isQueueRunning) return;
+                index_continue:;
                 try
                 {
                     isQueueRunning = true;
@@ -70,7 +71,13 @@ namespace WikiDataAnalysis_WPF
                         await task.RunTaskAsync();
                     }
                 }
-                catch(Exception error) { MessageBox.Show(error.ToString()); }
+                catch(Exception error)
+                {
+                    if (MessageBox.Show(error.ToString(), "Try Continue?", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    {
+                        goto index_continue;
+                    }
+                }
                 finally { isQueueRunning = false; }
             }
             public async Task EnqueueTaskAsync(string name,Func<Task> task)

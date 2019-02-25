@@ -11,7 +11,6 @@ using System.Reflection;
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
-using Motivation;
 
 namespace WikiDataAnalysis
 {
@@ -114,7 +113,7 @@ namespace WikiDataAnalysis
         }
         void InitializeButtons(List<Tuple<string, Action>>bs)
         {
-            bs.Add(new Tuple<string, Action>("Send Socket", async () =>
+            bs.Add(new Tuple<string, Action>("Send Socket",  () =>
              {
                  int port = int.Parse(Microsoft.VisualBasic.Interaction.InputBox("socket port?", "", "7122"));
                  Socket client_sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);

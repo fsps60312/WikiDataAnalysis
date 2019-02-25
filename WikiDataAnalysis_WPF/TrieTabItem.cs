@@ -6,20 +6,93 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO;
+using System.Collections.Generic;
 
 namespace WikiDataAnalysis_WPF
 {
     partial class TrieTabItem:TabItem
     {
+        static class TextSplit
+        {
+            public static void Split20181213(Trie trie, string data, int maxWordLength, Action<string> callBack)
+            {
+                double[,] dp = new double[data.Length + 1, 2];
+                int[,] pre = new int[data.Length + 1, 2];
+                dp[0, 0] = dp[0, 1] = 0;
+                Log.WriteLine("Initializing...");
+                Parallel.For(1, data.Length, i => dp[i, 0] = dp[i, 1] = double.MinValue);
+                Log.WriteLine("Dping...");
+                long progress = 0, total_progress = (long)data.Length * maxWordLength;
+                throw new NotImplementedException();
+                //Parallel.For(1,maxWordLength+1,wordLength=>
+                //{
+                //    for(int )
+                //})
+            }
+        }
         Trie trie = new Trie();
         string mainData = null;
+
+        private async void Button_wordsPerCount_Click(object sender, RoutedEventArgs e)
+        {
+            int targetWordLength = int.Parse(Microsoft.VisualBasic.Interaction.InputBox("targetWordLength?", "", "4"));
+            var fileName = MyLib.Save();
+            if (fileName == null) return;
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"Words per Count {fileName} {targetWordLength}", async () => await Task.Run(() =>
+              {
+                  long percent = -1, progress = 0, total_progress = trie.Size;
+                  int wordLength = 0;
+                  SortedDictionary<long, long> ans = new SortedDictionary<long, long>();
+                  for (int i = 1; i <= 10; i++) ans[i] = 0;
+                  trie.Traverse(c => wordLength++, () => wordLength--, cnt =>
+                        {
+                            if (++progress * 100 / total_progress > percent)
+                            {
+                                Log.WriteLine($"Words per Count... {++percent}% {ans[1]} {ans[2]} {ans[3]} {ans[4]} {ans[5]} | {ans[6]} {ans[7]} {ans[8]} {ans[9]} {ans[10]}");
+                            }
+                            if (wordLength != targetWordLength) return;
+                            if (!ans.ContainsKey(cnt)) ans[cnt] = 0;
+                            ans[cnt]++;
+                        });
+                  Log.WriteLine($"Writing...");
+                  using (StreamWriter writer = new StreamWriter(fileName, false, Encoding.UTF8))
+                  {
+                      writer.WriteLine("Count,Words");
+                      foreach (var p in ans) writer.WriteLine($"{p.Key},{p.Value}");
+                  }
+                  Log.Write(" OK");
+              }));
+        }
+
         private void Button_split_Click(object sender, RoutedEventArgs e)
         {
             throw new NotImplementedException();
         }
 
-        void ProcessInput(string text)
+        private async void TextBox_in_KeyDown(object sender, KeyEventArgs e)
         {
+            if (e.Key == Key.Enter && MainWindow.IsDown(Key.LeftCtrl))
+            {
+                string text = textBox_in.Text;
+                int inputMethod = radioPanel_inputMethod.SelectedIndex;
+                await stackPanel_tasksQueue.EnqueueTaskAsync($"ProcessInput({text},{inputMethod})", new Func<Task>(async () => await Task.Run(() => ProcessInput(text, inputMethod))));
+            }
+        }
+
+        void ProcessInput(string text,int inputMethod)
+        {
+            OutputText = "";
+            switch(inputMethod)
+            {
+                case 0://Count Word
+                    {
+                        foreach(var s in text.Split('\n').Select(s=>s.TrimEnd()))
+                        {
+                            OutputText += $"{s}\t{trie.Count(s)}\r\n";
+                        }
+                    }break;
+                default:throw new Exception($"Unknown inputMethod: {inputMethod}");
+            }
         }
 
         private void Button_performIteration_Click(object sender, RoutedEventArgs e)
@@ -29,8 +102,8 @@ namespace WikiDataAnalysis_WPF
 
         private async void Button_new_Click(object sender, RoutedEventArgs e)
         {
-            var s = MyLib.Open();
-            if (s == null) return;
+            var fileName = MyLib.Open();
+            if (fileName == null) return;
             var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButton.YesNo);
             if (encodingSelected == MessageBoxResult.None) return;
             Log.Assert(encodingSelected == MessageBoxResult.Yes || encodingSelected == MessageBoxResult.No);
@@ -38,8 +111,8 @@ namespace WikiDataAnalysis_WPF
             int maxWordLength = int.Parse(inputField_data["maxWordLength"].Text);
             bool debugMode = (bool)checkBox_debugMode.IsChecked;
             int processMethod = radioPanel_newData.SelectedIndex;
-            await stackPanel_tasksQueue.EnqueueTaskAsync($"BuildDataAsync({s},{encoding},{processMethod},{maxWordLength},{debugMode})", new Func<Task>(async () => await Task.Run(() => BuildData(
-                new FileStream(s, FileMode.Open, FileAccess.Read),
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"BuildDataAsync({fileName},{encoding},{processMethod},{maxWordLength},{debugMode})", new Func<Task>(async () => await Task.Run(() => BuildData(
+                new FileStream(fileName, FileMode.Open, FileAccess.Read),
                 encoding,
                 processMethod,
                 maxWordLength,
@@ -85,87 +158,20 @@ namespace WikiDataAnalysis_WPF
 
         private async void TextBox_data_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            var s = MyLib.Open();
-            if (s == null) return;
+            var fileName = MyLib.Open();
+            if (fileName == null) return;
             var encodingSelected = MessageBox.Show("\"Yes\" to use UTF-8\r\n\"No\" to use UTF-16 (Unicode)", "", MessageBoxButton.YesNo);
             if (encodingSelected == MessageBoxResult.None) return;
             Log.Assert(encodingSelected == MessageBoxResult.Yes || encodingSelected == MessageBoxResult.No);
             var encoding = encodingSelected == MessageBoxResult.Yes ? Encoding.UTF8 : Encoding.Unicode;
             int dataPreprocessMethodId = radioPanel_newData.SelectedIndex;
             bool debugMode = (bool)checkBox_debugMode.IsChecked;
-            await stackPanel_tasksQueue.EnqueueTaskAsync($"Read Data {s} {encoding} {debugMode} {dataPreprocessMethodId}", new Func<Task>(async () =>
+            await stackPanel_tasksQueue.EnqueueTaskAsync($"Read Data {fileName} {encoding} {debugMode} {dataPreprocessMethodId}", new Func<Task>(async () =>
             {
-                mainData = await Task.Run(() => ReadTextStream(new FileStream(s, FileMode.Open, FileAccess.Read), encoding, debugMode));
-                await Task.Run(() => ProcessText(ref mainData, dataPreprocessMethodId));
+                mainData = await Task.Run(() =>TextProcess.ReadTextStream(new FileStream(fileName, FileMode.Open, FileAccess.Read), encoding, debugMode));
+                await Task.Run(() =>TextProcess.Process(ref mainData, dataPreprocessMethodId));
                 Log.Write(" OK");
             }));
-        }
-        string ReadTextStream(Stream s,Encoding encoding,bool debugMode)
-        {
-            var sb = new StringBuilder();
-            using (StreamReader reader = new StreamReader(s, encoding))
-            {
-                Log.WriteLine("Reading...");
-                bool warning = true;
-                for (char[] buf = new char[1024 * 1024]; ;)
-                {
-                    int n = reader.ReadBlock(buf, 0, buf.Length);
-                    if (n == 0) break;
-                    for (int i = 0; i < n; i++)
-                    {
-                        sb.Append(buf[i]);
-                        const int stringMaxLength = int.MaxValue / 2 - 100;
-                        if (warning&& sb.Length > stringMaxLength)
-                        {
-                            warning = false;
-                            if (MessageBox.Show($"Reach C# string max length: {sb.Length}, break?", "Warning", MessageBoxButton.OKCancel) == MessageBoxResult.OK) goto index_skipRead;
-                        }
-                    }
-                    Log.WriteLine($"Reading...{s.Position}/{s.Length}");
-                    if (debugMode && s.Position > 1000000) break;
-                }
-                index_skipRead:;
-                return sb.ToString();
-            }
-        }
-        void ProcessText(ref string data, int methodId)
-        {
-            var sb = new StringBuilder();
-            switch (methodId)
-            {
-                case 0:return;
-                case 1://non-chinese => space
-                    {
-                        int percentage = -1;
-                        long progress = 0, total_progress = data.Length;
-                        char last_char = '\0';
-                        foreach (char c in data)
-                        {
-                            if (++progress * 100 / total_progress > percentage) Log.WriteLine($"Preprocessing {++percentage}%: non-chinese => space");
-                            if (!MyLib.IsChinese(c))
-                            {
-                                if (last_char != ' ') sb.Append(last_char = ' ');
-                            }
-                            else sb.Append(last_char = c);
-                        }
-                        data = sb.ToString();
-                        return;
-                    }
-                case 2://non-chinese => removed
-                    {
-                        int percentage = -1;
-                        long progress = 0, total_progress = data.Length;
-                        char last_char = '\0';
-                        foreach (char c in data)
-                        {
-                            if (++progress * 100 / total_progress > percentage) Log.WriteLine($"Preprocessing {++percentage}%: non-chinese => space");
-                            if (MyLib.IsChinese(c)) sb.Append(last_char = c);
-                        }
-                        data = sb.ToString();
-                        return;
-                    }
-                default: throw new Exception($"Unknown methodId: {methodId}");
-            }
         }
         void BuildData(Stream s,Encoding encoding,int dataPreprocessMethodId,int maxWordLength,bool debugMode)
         {
@@ -174,10 +180,10 @@ namespace WikiDataAnalysis_WPF
                 Log.AppendLog($"maxWordLength: {maxWordLength}");
                 int methodId = radioPanel_newData.SelectedIndex;
                 Log.WriteLine($"Data preprocessing method: {dataPreprocessMethodId}");
-                string data = ReadTextStream(s, encoding, debugMode);
+                string data = TextProcess.ReadTextStream(s, encoding, debugMode);
                 Log.AppendLog($"Charactors Read = {data.Length}");
                 Log.WriteLine("Preprocessing Data...");
-                ProcessText(ref data, dataPreprocessMethodId);
+                TextProcess.Process(ref data, dataPreprocessMethodId);
                 OutputText = data.Length > 10000 ? data.Remove(10000) : data;
                 long baseDataLength = data.Length;
                 Log.AppendLog($"baseDataLength: {baseDataLength}");

@@ -78,7 +78,28 @@ namespace WikiDataAnalysis_WPF
             {
                 Clear();
                 int percent = -1;
-                var dataa = maindata.Split(' ', '\r', '\n');
+                List<string> dataa =new List<string>();
+                //var dataa=maindata.split(' ');
+                {
+                    StringBuilder sb = new StringBuilder();
+                    foreach(char c in maindata)
+                    {
+                        if (c == ' ')
+                        {
+                            if (sb.Length > 0)
+                            {
+                                dataa.Add(sb.ToString());
+                                sb.Clear();
+                            }
+                        }
+                        else sb.Append(c);
+                    }
+                    if (sb.Length > 0)
+                    {
+                        dataa.Add(sb.ToString());
+                        sb.Clear();
+                    }
+                }
                 long progress = 0, total_progress = dataa.Sum(s => (long)s.Length);
                 foreach (var data in dataa)
                 {
@@ -87,13 +108,13 @@ namespace WikiDataAnalysis_WPF
                         if ((progress + 1) * 100L / total_progress > percent)
                         {
                             percent++;
-                            Log.WriteLine($"Trie.BuildAsync: {percent}%");
+                            Log.WriteLine($"Trie.Build: {percent}%");
                         }
                         string s = data.Substring(i, Math.Min(maxWordLength, data.Length - i));
                         InsertNonemptySuffixes(s);
                     }
                 }
-                Log.WriteLine("Trie.BuildAsync: OK");
+                Log.WriteLine("Trie.Build: OK");
                 _IsBuilt = true;
             });
         }

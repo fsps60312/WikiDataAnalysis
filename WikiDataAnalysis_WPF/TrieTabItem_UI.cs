@@ -13,11 +13,11 @@ namespace WikiDataAnalysis_WPF
     partial class TrieTabItem
     {
         TextBox textBox_in, textBox_out, textBox_data;
-        Button button_exportList, button_save, button_load, button_new, button_split, button_performIteration;
+        Button button_exportList, button_save, button_load, button_new, button_split, button_performIteration,button_wordsPerCount;
         CheckBox checkBox_debugMode;
         TaskQueueStackPanel stackPanel_tasksQueue;
         InputField inputField_data;
-        RadioPanel radioPanel_newData;
+        RadioPanel radioPanel_newData,radioPanel_inputMethod;
         string OutputText
         {
             get
@@ -40,12 +40,14 @@ namespace WikiDataAnalysis_WPF
             button_new = new Button { Content = "Build" };
             button_performIteration = new Button { Content = "Perform Iteration" };
             button_split = new Button { Content = "Split" };
+            button_wordsPerCount = new Button { Content = "Words per Count" };
             checkBox_debugMode = new CheckBox { Content = "Debug Mode", IsChecked = true };
             stackPanel_tasksQueue = new TaskQueueStackPanel();
             inputField_data = new InputField();
             inputField_data.AddField("maxWordLength", "4");
             inputField_data.AddField("baseDataLength", "-1");
-            radioPanel_newData = new RadioPanel("Date preprocessing", "None", "Non-Chinese => Blank", "Non-Chinese => Removed");
+            radioPanel_newData = new RadioPanel("Date Preprocessing", "None", "Non-Chinese => Blank", "Non-Chinese => Removed");
+            radioPanel_inputMethod = new RadioPanel("Input Method", "Count Word");
             this.Content = new Grid
             {
                 RowDefinitions =
@@ -83,6 +85,7 @@ namespace WikiDataAnalysis_WPF
                             button_split,
                             button_performIteration,
                             button_save,
+                            button_wordsPerCount,
                             button_new,
                             radioPanel_newData,
                             button_exportList,
@@ -95,7 +98,7 @@ namespace WikiDataAnalysis_WPF
         }
         void RegisterEvents()
         {
-            textBox_in.KeyDown += (sender, e) => { if (e.Key == Key.Enter && MainWindow.IsDown(Key.LeftCtrl)) ProcessInput(textBox_in.Text); };
+            textBox_in.KeyDown += TextBox_in_KeyDown;
             textBox_data.MouseDoubleClick += TextBox_data_MouseDoubleClick;
             button_exportList.Click += Button_exportList_Click;
             button_split.Click += Button_split_Click;
@@ -103,7 +106,9 @@ namespace WikiDataAnalysis_WPF
             button_save.Click += Button_save_Click;
             button_new.Click += Button_new_Click;
             button_performIteration.Click += Button_performIteration_Click;
+            button_wordsPerCount.Click += Button_wordsPerCount_Click;
         }
+
         public TrieTabItem()
         {
             this.Header = "Trie";

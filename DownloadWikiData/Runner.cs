@@ -114,38 +114,81 @@ namespace DownloadWikiData
             Tag tag = new Tag();
             tag.name = tagName = tagName.Trim();
             //Console.WriteLine($"TagStart: {tag.name}");
-            while(true)
+            switch (tag.name)
             {
-                c = Read();
-                if (c == '>')
-                {
-                    tags.Add(tag);
-                    return;
-                }
-                else
-                {
-                    contentIndex--;
-                    string pName = "";
-                    while (!new char[] {'=','/','>' }.Contains(c = Read())) pName += c;
-                    pName = pName.Trim();
-                    if (!string.IsNullOrWhiteSpace(pName))
+                case "script":
                     {
-                        tag.properties[pName] = (c == '=' ? ReadString() : null);
-                        if(c=='/')
+                        var s = "";
+                        Stack<char> brackets = new Stack<char>();
+                        while(true)
                         {
-                            //Console.WriteLine("Self-ended");
-                            Trace.Assert((c = Read()) == '>');
-                            if (c != '>')
+                            s += (c = Read());
+                            switch(c)
                             {
-                                Console.WriteLine($"tagName={tagName}");
-                                throw new Exception();
+                                case '\\':s += (c = Read());break;
+                                case '(':
+                                case '[':
+                                case '{':brackets.Push(c);break;
+                                case ']':Trace.Assert(brackets.Pop() == '[');break;
+                                case '}':Trace.Assert(brackets.Pop() == '{');break;
+                                case ')':Trace.Assert(brackets.Pop() == '(');break;
+                                case '"':
+                                    if (brackets.Count > 0)
+                                    {
+                                        if (brackets.Peek() == '"') brackets.Pop();
+                                        else if (brackets.Peek() == '\'') break;
+                                    }
+                                    else brackets.Push(c);
+                                    break;
+                                case '\'':
+                                    if (brackets.Count > 0)
+                                    {
+                                        if (brackets.Peek() == '\'') brackets.Pop();
+                                        else if (brackets.Peek() == '"') break;
+                                    }
+                                    else brackets.Push(c);
+                                    break;
                             }
-                            //if (tag.name == "br") result.Append("\r\n");
-                            return;
+                            if (brackets.Count == 0 && s.EndsWith("</script>"))
+                            {
+                                return;
+                            }
                         }
                     }
-                    if (c == '>') contentIndex--;
-                }
+                default:
+                    while (true)
+                    {
+                        c = Read();
+                        if (c == '>')
+                        {
+                            tags.Add(tag);
+                            return;
+                        }
+                        else
+                        {
+                            contentIndex--;
+                            string pName = "";
+                            while (!new char[] { '=', '/', '>' }.Contains(c = Read())) pName += c;
+                            pName = pName.Trim();
+                            if (!string.IsNullOrWhiteSpace(pName))
+                            {
+                                tag.properties[pName] = (c == '=' ? ReadString() : null);
+                                if (c == '/')
+                                {
+                                    //Console.WriteLine("Self-ended");
+                                    Trace.Assert((c = Read()) == '>');
+                                    if (c != '>')
+                                    {
+                                        Console.WriteLine($"tagName={tagName}");
+                                        throw new Exception();
+                                    }
+                                    //if (tag.name == "br") result.Append("\r\n");
+                                    return;
+                                }
+                            }
+                            if (c == '>') contentIndex--;
+                        }
+                    }
             }
         }
         void Comment()
@@ -252,6 +295,8 @@ namespace DownloadWikiData
             if (Contains(Attribute(Tags("table"), "class"), new string[] { "vertical-navbox", "navbox", "plainlinks" })) return false;
             //if (Tags("script").Count > 0) return false;
             if (Tags("title").Count > 0) return false;
+            if (Tags("style").Count > 0) return false;
+            if (Tags("table").Count > 0) return false;
             return true;
             //if (parentTags["script"].Count > 0) return false;
             //if (ContainsAttribute(parentTags["table"], "class", "navbox")) return false;
@@ -315,10 +360,13 @@ namespace DownloadWikiData
                     w.WriteLine("==================================");
                     w.WriteLine($"len={webContent.Length},idx={contentIndex}");
                     w.WriteLine("==================================");
-                    w.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
-                    w.WriteLine("==================================");
-                    w.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
-                    w.WriteLine("==================================");
+                    if (0 <= contentIndex && contentIndex < webContent.Length)
+                    {
+                        w.WriteLine(TrimLength(contentIndex + 1 == webContent.Length ? webContent : webContent.Remove(contentIndex + 1), 100, false));
+                        w.WriteLine("==================================");
+                        w.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
+                        w.WriteLine("==================================");
+                    }
                     //Console.ReadLine();
                 }
             }
