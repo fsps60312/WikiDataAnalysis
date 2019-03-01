@@ -80,7 +80,7 @@ namespace DownloadWikiData
                             int goodCount = 0;
                             while(true)
                             {
-                                Thread.Sleep(100);
+                                Thread.Sleep(500);
                                 if (hasError)
                                 {
                                     hasError = false;
@@ -94,7 +94,7 @@ namespace DownloadWikiData
                                 else
                                 {
                                     ++goodCount;
-                                    if (goodCount >= 20)
+                                    if (goodCount >= 4)
                                     {
                                         goodCount = 0;
                                         ++parallelism;
@@ -175,11 +175,20 @@ namespace DownloadWikiData
                                                   }
                                               }
                                           });
-                                        var errors = new[] { _error };
-                                        while (errors.Any(e => e is AggregateException))
-                                        {
-                                            errors = errors.SelectMany(e => e is AggregateException ? (e as AggregateException).InnerExceptions.Concat(new[] { (e as AggregateException).InnerException }).ToArray() : new[] { e }).ToArray();
-                                        }
+                                        var errors = new List<Exception>();
+                                        Action<Exception> dfs = null;
+                                        dfs = new Action<Exception>(e =>
+                                          {
+                                              if (e == null) return;
+                                              dfs(e.InnerException);
+                                              if (e is AggregateException)
+                                              {
+                                                  foreach (var o in (e as AggregateException).InnerExceptions) dfs(o);
+                                                  return;
+                                              }
+                                              if (e != null) errors.Add(e);
+                                          });
+                                        dfs(_error);
                                         foreach (var e in errors)
                                         {
                                             if (e is HttpRequestException)
