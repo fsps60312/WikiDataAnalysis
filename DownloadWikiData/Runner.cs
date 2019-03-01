@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Threading;
 
 namespace DownloadWikiData
 {
@@ -19,6 +20,8 @@ namespace DownloadWikiData
         StringBuilder result;
         char Read() { return webContent[contentIndex++]; }
         List<Tag> tags = new List<Tag>();
+        static object syncRootWarningFile = new object();
+        static System.IO.StreamWriter warningWriter = null;
         void TagEnd()
         {
             char c;
@@ -28,23 +31,25 @@ namespace DownloadWikiData
             //Console.WriteLine($"{string.Concat(Enumerable.Repeat("| ", Math.Max(0, tags.Count - 1)))}TagEnd:   {tagName} ({contentIndex})");
             for (int i = tags.Count - 1; ; i--)
             {
-                if(i==-1)
+                if (i == -1)
                 {
-                    using (var w = new System.IO.StreamWriter("warning.txt", true, Encoding.UTF8))
+                    lock (syncRootWarningFile)
                     {
-                        w.WriteLine();
-                        w.WriteLine("".PadRight(50, '|'));
-                        w.WriteLine();
-                        w.WriteLine(webContent);
-                        w.WriteLine("==================================");
-                        w.WriteLine($"Extra TagEnd: {tagName}");
-                        w.WriteLine("==================================");
-                        w.WriteLine($"len={webContent.Length},idx={contentIndex}");
-                        w.WriteLine("==================================");
-                        w.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
-                        w.WriteLine("==================================");
-                        w.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
-                        w.WriteLine("==================================");
+                        if (warningWriter == null) warningWriter = new System.IO.StreamWriter("warning.txt", true, Encoding.UTF8);
+                        warningWriter.WriteLine();
+                        warningWriter.WriteLine("".PadRight(50, '|'));
+                        warningWriter.WriteLine();
+                        warningWriter.WriteLine(webContent);
+                        warningWriter.WriteLine("==================================");
+                        warningWriter.WriteLine($"Extra TagEnd: {tagName}");
+                        warningWriter.WriteLine("==================================");
+                        warningWriter.WriteLine($"len={webContent.Length},idx={contentIndex}");
+                        warningWriter.WriteLine("==================================");
+                        warningWriter.WriteLine(TrimLength(webContent.Remove(contentIndex + 1), 100, false));
+                        warningWriter.WriteLine("==================================");
+                        warningWriter.WriteLine(TrimLength(webContent.Substring(contentIndex), 100, true));
+                        warningWriter.WriteLine("==================================");
+                        warningWriter.Flush();
                     }
                     return;
                 }

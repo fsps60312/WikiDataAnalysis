@@ -13,10 +13,10 @@ namespace DownloadWikiData
 {
     class Program
     {
-        //const string titleListUrl = "https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles-multistream-index.txt.bz2";
-        //const string curlUrl = "https://zh.wikipedia.org/zh-tw/";//+"数学";
-        const string titleListUrl = "https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles-multistream-index.txt.bz2";
-        const string curlUrl = "https://en.wikipedia.org/wiki/";//+"数学";
+        const string titleListUrl = "https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles-multistream-index.txt.bz2";
+        const string curlUrl = "https://zh.wikipedia.org/zh-tw/";//+"数学";
+        //const string titleListUrl = "https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles-multistream-index.txt.bz2";
+        //const string curlUrl = "https://en.wikipedia.org/wiki/";//+"数学";
         static async Task<List<string>>GetTitleList()
         {
             try
@@ -61,6 +61,7 @@ namespace DownloadWikiData
             {
                 using (StreamWriter log = new StreamWriter("log.txt", false, Encoding.UTF8) {AutoFlush=true })
                 {
+                    object syncRootErrorWriter = new object();
                     int progress = 0;
                     int total_progress = retryList.Count;
                     Console.WriteLine($"Url Prefix: {curlUrl}");
@@ -73,8 +74,35 @@ namespace DownloadWikiData
                         Console.WriteLine($"Iteration Count: {iterationCount}");
                         int parallelism = 10;
                         SemaphoreSlim semaphoreSlim = new SemaphoreSlim(parallelism);
-                        int goodCount = 0;
-                        const int parallelIncThreshHold = 20;
+                        bool hasError = false;
+                        new Thread(() =>
+                        {
+                            int goodCount = 0;
+                            while(true)
+                            {
+                                Thread.Sleep(100);
+                                if (hasError)
+                                {
+                                    hasError = false;
+                                    goodCount = 0;
+                                    if (parallelism > 1)
+                                    {
+                                        --parallelism;
+                                        semaphoreSlim.Wait();
+                                    }
+                                }
+                                else
+                                {
+                                    ++goodCount;
+                                    if (goodCount >= 20)
+                                    {
+                                        goodCount = 0;
+                                        ++parallelism;
+                                        lock (semaphoreSlim) semaphoreSlim.Release();
+                                    }
+                                }
+                            }
+                        }).Start();
                         for(int _i=0;_i<iterationCount;_i++)
                         {
                             //Console.WriteLine($"Url Prefix: {curlUrl}");
@@ -115,24 +143,10 @@ namespace DownloadWikiData
                                             writer.WriteLine(webContent);
                                         }
                                         Console.Write(GetPaddingString() + $"Done ({webContent.Length})".PadRight(padding) + "\r");
-                                        // seems OK, increase parallelism
-                                        if (Interlocked.Increment(ref goodCount) >= parallelIncThreshHold)
-                                        {
-                                            goodCount = 0;
-                                            if (parallelism < 50)
-                                            {
-                                                Interlocked.Increment(ref parallelism);
-                                                lock (semaphoreSlim) semaphoreSlim.Release();
-                                            }
-                                        }
                                     }
                                     catch (Exception _error)
                                     {
-                                        {//decrease parallelism
-                                            goodCount = 0;
-                                            if (Interlocked.Decrement(ref parallelism) <= 0) Interlocked.Increment(ref parallelism);
-                                            else semaphoreSlim.Wait();
-                                        }
+                                        hasError = true;
                                         var GetStatusCode = new Func<string, int>(o =>
                                            {
                                                const string target = "Response status code does not indicate success: ";
@@ -149,19 +163,22 @@ namespace DownloadWikiData
                                           {
                                               Console.WriteLine(url.PadRight(Console.WindowWidth - 1));
                                               Console.WriteLine(o);
-                                              using (StreamWriter w = new StreamWriter("error.txt", true, Encoding.UTF8))
+                                              lock (syncRootErrorWriter)
                                               {
-                                                  w.WriteLine();
-                                                  w.WriteLine(s[i]);
-                                                  w.WriteLine(url);
-                                                  w.WriteLine(o);
-                                                  w.Close();
+                                                  using (StreamWriter w = new StreamWriter("error.txt", true, Encoding.UTF8))
+                                                  {
+                                                      w.WriteLine();
+                                                      w.WriteLine(s[i]);
+                                                      w.WriteLine(url);
+                                                      w.WriteLine(o);
+                                                      w.Close();
+                                                  }
                                               }
                                           });
                                         var errors = new[] { _error };
                                         while (errors.Any(e => e is AggregateException))
                                         {
-                                            errors = errors.SelectMany(e => e is AggregateException ? (e as AggregateException).InnerExceptions.ToArray() : new[] { e }).ToArray();
+                                            errors = errors.SelectMany(e => e is AggregateException ? (e as AggregateException).InnerExceptions.Concat(new[] { (e as AggregateException).InnerException }).ToArray() : new[] { e }).ToArray();
                                         }
                                         foreach (var e in errors)
                                         {
@@ -250,7 +267,14 @@ namespace DownloadWikiData
             //    Console.WriteLine("-----Suspended-----");
             //    Console.ReadLine();
             //}
-            Run();
+            try
+            {
+                Run();
+            }
+            catch(Exception error)
+            {
+                Console.WriteLine($"Unexpected Fatal Error, cannot recover\n{error}");
+            }
             Console.ReadLine();
         }
     }
