@@ -1,13 +1,24 @@
-﻿using System;
+﻿#define TRACE
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Threading;
-
 namespace DownloadWikiData
 {
+    partial class Program
+    {
+        public const string DateTimeFormatString = "yyyy-MM-dd HH-mm-ss.FFFFFFF";
+    }
+    class StaticRunner
+    {
+        public static string Run(string webContent)
+        {
+            return new Runner().Run(webContent);
+        }
+    }
     class Runner
     {
         class Tag
@@ -60,6 +71,10 @@ namespace DownloadWikiData
                 }
             }
         }
+        /// <summary>
+        /// Read a double-quoted string and return HashSet(s.split(' '))
+        /// </summary>
+        /// <returns></returns>
         HashSet<string> ReadStringDQ()
         {
             string s = "";
@@ -118,82 +133,47 @@ namespace DownloadWikiData
             contentIndex--;
             Tag tag = new Tag();
             tag.name = tagName = tagName.Trim();
-            //Console.WriteLine($"{string.Concat(Enumerable.Repeat("| ",  tags.Count))}TagStart: {tag.name} ({contentIndex})");
-            switch (tag.name)
+            //Console.WriteLine($"{string.Concat(Enumerable.Repeat("| ", tags.Count))}TagStart: {tag.name} ({contentIndex})");
+            while (true)
             {
-                case "script":
+                c = Read();
+                if (c == '>')
+                {
+                    tags.Add(tag);
+                    return;
+                }
+                else
+                {
+                    contentIndex--;
+                    string pName = "";
+                    while (!new char[] { '=', '/', '>' }.Contains(c = Read()))
                     {
-                        var s = "";
-                        Stack<char> brackets = new Stack<char>();
-                        while(true)
+                        pName += c;
+                        if (c == '"')
                         {
-                            s += (c = Read());
-                            switch(c)
-                            {
-                                case '\\':s += (c = Read());break;
-                                case '(':
-                                case '[':
-                                case '{':brackets.Push(c);break;
-                                case ']':Trace.Assert(brackets.Pop() == '[');break;
-                                case '}':Trace.Assert(brackets.Pop() == '{');break;
-                                case ')':Trace.Assert(brackets.Pop() == '(');break;
-                                case '"':
-                                    while(true)
-                                    {
-                                        c = Read();
-                                        if (c == '\\') c = Read();
-                                        else if (c == '"') break;
-                                    }
-                                    break;
-                                case '\'':
-                                    while (true)
-                                    {
-                                        c = Read();
-                                        if (c == '\\') c = Read();
-                                        else if (c == '\'') break;
-                                    }
-                                    break;
-                            }
-                            if (brackets.Count == 0 && s.EndsWith("</script>"))
-                            {
-                                return;
-                            }
+                            do { pName += (c = Read()); } while (c != '"');
+                            break;
                         }
                     }
-                default:
-                    while (true)
+                    pName = pName.Trim();
+                    if (!string.IsNullOrWhiteSpace(pName))
                     {
-                        c = Read();
-                        if (c == '>')
+                        tag.properties[pName] = (c == '=' ? ReadString() : null);
+                        if (c == '/')
                         {
-                            tags.Add(tag);
+                            //Console.WriteLine("Self-ended");
+                            Trace.Assert((c = Read()) == '>');
+                            if (c != '>')
+                            {
+                                Console.WriteLine($"tagName={tagName}");
+                                throw new Exception();
+                            }
+                            //if (tag.name == "br") result.Append("\r\n");
                             return;
                         }
-                        else
-                        {
-                            contentIndex--;
-                            string pName = "";
-                            while (!new char[] { '=', '/', '>' }.Contains(c = Read())) pName += c;
-                            pName = pName.Trim();
-                            if (!string.IsNullOrWhiteSpace(pName))
-                            {
-                                tag.properties[pName] = (c == '=' ? ReadString() : null);
-                                if (c == '/')
-                                {
-                                    //Console.WriteLine("Self-ended");
-                                    Trace.Assert((c = Read()) == '>');
-                                    if (c != '>')
-                                    {
-                                        Console.WriteLine($"tagName={tagName}");
-                                        throw new Exception();
-                                    }
-                                    //if (tag.name == "br") result.Append("\r\n");
-                                    return;
-                                }
-                            }
-                            if (c == '>') contentIndex--;
-                        }
                     }
+                    if (c == '>') contentIndex--;
+                }
             }
         }
         void Comment()
@@ -209,6 +189,56 @@ namespace DownloadWikiData
                     if (c == '>' && dashed >= 2) return;
                     dashed = 0;
                 }
+            }
+        }
+        void SkipJavaScriptContent()
+        {
+            char c;
+            var s = "";
+            Stack<char> brackets = new Stack<char>();
+            while (true)
+            {
+                s += (c = Read());
+                if (s.EndsWith("//"))
+                {
+                    do { s += (c = Read()); } while (c != '\n');
+                }
+                else if (s.EndsWith("/*"))
+                {
+                    do { s += (c = Read()); } while (!s.EndsWith("*/"));
+                }
+                else
+                {
+                    switch (c)
+                    {
+                        case '\\': s += (c = Read()); break;
+                        case '(':
+                        case '[':
+                        case '{': brackets.Push(c); break;
+                        case ']': Trace.Assert(brackets.Pop() == '['); break;
+                        case '}': Trace.Assert(brackets.Pop() == '{'); break;
+                        case ')': Trace.Assert(brackets.Pop() == '('); break;
+                        case '"':
+                            while (true)
+                            {
+                                s+=(c = Read());
+                                if (c == '\\') s+=(c = Read());
+                                else if (c == '"') break;
+                            }
+                            break;
+                        case '\'':
+                            while (true)
+                            {
+                                s += (c = Read());
+                                if (c == '\\') s += (c = Read());
+                                else if (c == '\'') break;
+                            }
+                            break;
+                    }
+                }
+                //Console.WriteLine("==============================="+string.Join("",brackets));
+                //Console.WriteLine(s);
+                if (brackets.Count == 0 && s.EndsWith("</script>")) return;
             }
         }
         void InTag()
@@ -234,6 +264,16 @@ namespace DownloadWikiData
             {
                 contentIndex--;
                 TagStart();
+                if (tags.Last().name == "script")
+                {
+                    //if (!tags.Last().properties.ContainsKey("type")) tags.Last().properties.Add("type", new HashSet<string> { "text/javascript" });
+                    //Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(tags.Last()));
+                    if (!tags.Last().properties.ContainsKey("type")||tags.Last().properties["type"].Contains("text/javascript"))
+                    {
+                        tags.RemoveAt(tags.Count - 1);
+                        SkipJavaScriptContent();
+                    }
+                }
             }
         }
         string TrimLength(string s, int maxLength, bool begin)
@@ -254,7 +294,10 @@ namespace DownloadWikiData
             foreach (var t in ts) if (t.properties.ContainsKey(attributeName)) foreach (var v in t.properties[attributeName]) ans.Add(v);
             return ans;
         }
-        bool cutOff = false;
+        /// <summary>
+        /// Internal use. Whether to terminate immediately
+        /// </summary>
+        private bool cutOff = false;
         bool Contains<T>(HashSet<T>s,IEnumerable<T>t)
         {
             foreach (var v in t) if (s.Contains(v)) return true;

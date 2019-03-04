@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace DownloadWikiData
 {
-    class Program
+    partial class Program
     {
         const string titleListUrl = "https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles-multistream-index.txt.bz2";
         const string curlUrl = "https://zh.wikipedia.org/zh-tw/";//+"数学";
@@ -119,14 +119,14 @@ namespace DownloadWikiData
                             var titleName = System.Net.WebUtility.UrlEncode(s[i].Replace(' ', '_'));
                             var url = curlUrl + titleName;
                             int paddingstringlength = iterationCount.ToString().Length * 2 + 1 + 3;
-                            var GetPaddingString = new Func<string>(() => $"{progress}/{retryList.Count}-{parallelism}".PadRight(paddingstringlength) + " ");
+                            var GetPaddingString = new Func<string>(() => $"{iterationCount} {progress + retryList.Count}/{retryList.Count}-{parallelism}".PadRight(paddingstringlength) + " ");
                             int padding = 20;
                             {
                                 var p = System.Threading.Interlocked.Increment(ref progress);
                                 var __ = (GetPaddingString() + titleName.PadLeft(Console.WindowWidth - 1 - paddingstringlength));
                                 if (__.Length > Console.WindowWidth - 1) __ = __.Remove(Console.WindowWidth - 1);
                                 Console.Write(__ + "\r");
-                                lock (log) log.WriteLine($"{p}/{iterationCount}\t{url}");
+                                lock (log) log.WriteLine($"{DateTime.Now.ToString(DateTimeFormatString)}\t{p}/{iterationCount}\t{url}");
                             }
                             Console.Write(GetPaddingString() + $"Downloading...".PadRight(padding) + "\r");
                             try
@@ -140,7 +140,7 @@ namespace DownloadWikiData
                                     finally { lock (semaphoreSlim) semaphoreSlim.Release(); }
                                 }
                                 Console.Write(GetPaddingString() + $"Processing... ({webContent.Length})".PadRight(padding) + "\r");
-                                webContent = new Runner().Run(webContent.Replace("<", " <"));
+                                webContent = ResolveWebContent(webContent.Replace("<", " <"));
                                 Console.Write(GetPaddingString() + $"Writing... ({webContent.Length})".PadRight(padding) + "\r");
                                 lock (writer)
                                 {
@@ -200,6 +200,7 @@ namespace DownloadWikiData
                                     {
                                         if (e.Message == "An error occurred while sending the request.")
                                         {
+                                            System.Threading.Interlocked.Decrement(ref progress);
                                             lock (retryList) retryList.Add(s[i]);
                                             return;
                                         }
@@ -217,11 +218,13 @@ namespace DownloadWikiData
                                             lock (retryList) retryList.Add(s[i]);
                                             return;
                                         }
+                                        else return;
                                     }
                                     else if (e is TaskCanceledException)
                                     {
                                         if (e.Message == "A task was canceled.")
                                         {
+                                            System.Threading.Interlocked.Decrement(ref progress);
                                             lock (retryList) retryList.Add(s[i]);
                                             return;
                                         }
@@ -268,18 +271,74 @@ namespace DownloadWikiData
             await bs.DownloadDictionaryAsync();
             Console.ReadLine();
         }
-        public const string DateTimeFormatString = "yyyy-MM-dd HH-mm-ss.FFFFFFF";
+        static Func<string, string> ResolveWebContent = new Func<string, string>(webContent => new Runner().Run(webContent));
+        static void RefreshResolvingMethodFromSource(string code)
+        {
+            Console.WriteLine($"{DateTime.Now}\tCompiling Customized Runner Code...");
+            var referenceAssemblies = new string[]
+            {
+                    "Microsoft.CSharp",
+                    "System",
+                    "System.Core",
+                    "System.Data",
+                    "System.Data.DataSetExtensions",
+                    "System.Net.Http",
+                    "System.Xml",
+                    "System.Xml.Linq",
+                    "Newtonsoft.Json"
+            };
+            System.Reflection.MethodInfo method = null;
+            try { method = DynamicCompile.GetMethod(code, "DownloadWikiData", "StaticRunner", "Run", referenceAssemblies); }
+            catch (Exception error) { Console.WriteLine(error.ToString()); return; }
+            ResolveWebContent = new Func<string, string>(webContent => (string)method.Invoke(null, new object[] { webContent }));
+            Console.WriteLine($"{DateTime.Now}\tCompilation OK");
+        }
         static void Main(string[] args)
         {
             Console.WriteLine(DateTime.Now.ToString(DateTimeFormatString));
-            //if(true)
-            //{
-            //    var webContent = new StreamReader("tmp.html").ReadToEnd();
-            //    webContent = new Runner().Run(webContent.Replace("<", " <"));
-            //    Console.WriteLine(webContent);
-            //    Console.WriteLine("-----Suspended-----");
-            //    Console.ReadLine();
-            //}
+            const string runnerSourceCodeName = "Runner.cs";
+            if (new FileInfo(runnerSourceCodeName).Exists)
+            {
+                Console.WriteLine($"Found {runnerSourceCodeName}. Start monitoring code changes... (Period: 10 secs)");
+                var datetime = new FileInfo(runnerSourceCodeName).LastWriteTime;
+                using (var reader = new StreamReader(runnerSourceCodeName)) RefreshResolvingMethodFromSource(reader.ReadToEnd());
+                new Thread(() =>
+                {
+                    while(true)
+                    {
+                        Thread.Sleep(10000);
+                        try
+                        {
+                            if (new FileInfo(runnerSourceCodeName).LastWriteTime != datetime)
+                            {
+                                Console.WriteLine($"Changes in {runnerSourceCodeName} detected.");
+                                datetime = new FileInfo(runnerSourceCodeName).LastWriteTime;
+                                using (var reader = new StreamReader(runnerSourceCodeName)) RefreshResolvingMethodFromSource(reader.ReadToEnd());
+                            }
+                        }
+                        catch(Exception error)
+                        {
+                            using (var writer = new StreamWriter("monitor-log.txt",true,Encoding.UTF8))
+                            {
+                                writer.WriteLine($"=========={DateTime.Now.ToString(DateTimeFormatString)}==========");
+                                writer.WriteLine(error.ToString());
+                            }
+                        }
+                    }
+                }).Start();
+            }
+            if (new FileInfo("tmp.html").Exists)
+            {
+                Console.WriteLine("Found test html file: tmp.html");
+                string webContent;
+                using (var reader = new StreamReader("tmp.html")) webContent = reader.ReadToEnd();
+                webContent = ResolveWebContent(webContent.Replace("<", " <"));
+                //webContent = new Runner().Run(webContent.Replace("<", " <"));
+                Console.WriteLine("Extracted Content:");
+                Console.WriteLine(webContent);
+                Console.WriteLine("-----Suspended-----");
+                Console.ReadLine();
+            }
             try
             {
                 Run();
