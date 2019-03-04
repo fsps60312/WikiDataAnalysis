@@ -115,7 +115,7 @@ namespace DownloadWikiData
                 else s += c;
             }
         }
-        HashSet<string>ReadString()
+        HashSet<string> ReadString()
         {
             char c = Read();
             if (c == '"') return ReadStringDQ();
@@ -123,13 +123,13 @@ namespace DownloadWikiData
             string s = "" + c;
             while ((c = Read()) != ' ') s += c;
             contentIndex--;
-            return new HashSet<string>{ s };
+            return new HashSet<string> { s };
         }
         void TagStart()
         {
             char c;
             string tagName = "";
-            while (!new char[]{' ','>' }.Contains(c = Read())) tagName += c;
+            while (!new char[] { ' ', '>' }.Contains(c = Read())) tagName += c;
             contentIndex--;
             Tag tag = new Tag();
             tag.name = tagName = tagName.Trim();
@@ -180,7 +180,7 @@ namespace DownloadWikiData
         {
             int dashed = 0;
             char c;
-            while(true)
+            while (true)
             {
                 c = Read();
                 if (c == '-') dashed++;
@@ -189,56 +189,6 @@ namespace DownloadWikiData
                     if (c == '>' && dashed >= 2) return;
                     dashed = 0;
                 }
-            }
-        }
-        void SkipJavaScriptContent()
-        {
-            char c;
-            var s = "";
-            Stack<char> brackets = new Stack<char>();
-            while (true)
-            {
-                s += (c = Read());
-                if (s.EndsWith("//"))
-                {
-                    do { s += (c = Read()); } while (c != '\n');
-                }
-                else if (s.EndsWith("/*"))
-                {
-                    do { s += (c = Read()); } while (!s.EndsWith("*/"));
-                }
-                else
-                {
-                    switch (c)
-                    {
-                        case '\\': s += (c = Read()); break;
-                        case '(':
-                        case '[':
-                        case '{': brackets.Push(c); break;
-                        case ']': Trace.Assert(brackets.Pop() == '['); break;
-                        case '}': Trace.Assert(brackets.Pop() == '{'); break;
-                        case ')': Trace.Assert(brackets.Pop() == '('); break;
-                        case '"':
-                            while (true)
-                            {
-                                s+=(c = Read());
-                                if (c == '\\') s+=(c = Read());
-                                else if (c == '"') break;
-                            }
-                            break;
-                        case '\'':
-                            while (true)
-                            {
-                                s += (c = Read());
-                                if (c == '\\') s += (c = Read());
-                                else if (c == '\'') break;
-                            }
-                            break;
-                    }
-                }
-                //Console.WriteLine("==============================="+string.Join("",brackets));
-                //Console.WriteLine(s);
-                if (brackets.Count == 0 && s.EndsWith("</script>")) return;
             }
         }
         void InTag()
@@ -264,16 +214,6 @@ namespace DownloadWikiData
             {
                 contentIndex--;
                 TagStart();
-                if (tags.Last().name == "script")
-                {
-                    //if (!tags.Last().properties.ContainsKey("type")) tags.Last().properties.Add("type", new HashSet<string> { "text/javascript" });
-                    //Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(tags.Last()));
-                    if (!tags.Last().properties.ContainsKey("type")||tags.Last().properties["type"].Contains("text/javascript"))
-                    {
-                        tags.RemoveAt(tags.Count - 1);
-                        SkipJavaScriptContent();
-                    }
-                }
             }
         }
         string TrimLength(string s, int maxLength, bool begin)
@@ -282,13 +222,13 @@ namespace DownloadWikiData
             if (begin) return s.Remove(maxLength);
             return s.Substring(s.Length - maxLength);
         }
-        List<Tag>Tags(string name)
+        List<Tag> Tags(string name)
         {
             List<Tag> ans = new List<Tag>();
             foreach (var t in tags) if (t.name == name) ans.Add(t);
             return ans;
         }
-        HashSet<string>Attribute(List<Tag> ts,string attributeName)
+        HashSet<string> Attribute(List<Tag> ts, string attributeName)
         {
             HashSet<string> ans = new HashSet<string>();
             foreach (var t in ts) if (t.properties.ContainsKey(attributeName)) foreach (var v in t.properties[attributeName]) ans.Add(v);
@@ -298,7 +238,7 @@ namespace DownloadWikiData
         /// Internal use. Whether to terminate immediately
         /// </summary>
         private bool cutOff = false;
-        bool Contains<T>(HashSet<T>s,IEnumerable<T>t)
+        bool Contains<T>(HashSet<T> s, IEnumerable<T> t)
         {
             foreach (var v in t) if (s.Contains(v)) return true;
             return false;
@@ -367,7 +307,7 @@ namespace DownloadWikiData
                     c = Read();
                 }
                 else if (c == '{') depth++;
-                else if(c=='}')
+                else if (c == '}')
                 {
                     if (--depth == 0) return;
                 }
@@ -381,14 +321,14 @@ namespace DownloadWikiData
                 {
                     char c = Read();
                     if (c == '<') InTag();
-                    else if(c == '{' && StartWith("\\displaystyle"))
+                    else if (c == '{' && StartWith("\\displaystyle"))
                     {
                         contentIndex += "\\displaystyle".Length;
                         InLatex();
                     }
                     else
                     {
-                        if(Accepted())result.Append(c);
+                        if (Accepted()) result.Append(c);
                         if (cutOff) return;
                     }
                 }
@@ -424,7 +364,7 @@ namespace DownloadWikiData
         {
             StringBuilder ans = new StringBuilder();
             bool isempty = false;
-            foreach(char c in s)
+            foreach (char c in s)
             {
                 bool e = IsEmpty(c);
                 if (!e || !isempty) ans.Append(e ? ' ' : c);
@@ -432,10 +372,16 @@ namespace DownloadWikiData
             }
             return ans.ToString();
         }
-        bool IsCiteNote(string s,ref int i)
+        string ForceNewlineOnTheEndOfParagraph(string s, string indicator)
         {
-            if (i + 1 >= s.Length||s[i] != '['||
-                (!char.IsLetterOrDigit(s[i+1])&&s[i+1]!= '參'&&s[i+1]!= '註')) return false;
+            return s
+                .Replace("</p>", $"{indicator}</p>")
+                .Replace("<br",$"{indicator}<br");
+        }
+        bool IsCiteNote(string s, ref int i)
+        {
+            if (i + 1 >= s.Length || s[i] != '[' ||
+                (!char.IsLetterOrDigit(s[i + 1]) && s[i + 1] != '參' && s[i + 1] != '註')) return false;
             int j = i + 2;
             while (char.IsWhiteSpace(s[j])) j++;
             while (char.IsDigit(s[j])) j++;
@@ -449,27 +395,20 @@ namespace DownloadWikiData
         string RemoveCiteNotes(string s)
         {
             StringBuilder ans = new StringBuilder();
-            for(int i=0;i<s.Length;i++)
+            for (int i = 0; i < s.Length; i++)
             {
                 if (!IsCiteNote(s, ref i)) ans.Append(s[i]);
             }
             return ans.ToString();
-        }
-        string Process(string s)
-        {
-            s = System.Net.WebUtility.HtmlDecode(s);
-            s = RemoveExtraEmpties(s);
-            s = RemoveCiteNotes(s);
-            return s;
         }
         string RemoveScripts(string s)
         {
             StringBuilder ans = new StringBuilder();
             s = s.Replace("</flowprogressivescript>", "</script>");
             int pre = 0;
-            while(true)
+            while (true)
             {
-                int i = s.IndexOf("<script>", pre);
+                int i = s.IndexOf("<script", pre);
                 if (i == -1) break;
                 ans.Append(s.Substring(pre, i - pre));
                 int j = s.IndexOf("</script>", i);
@@ -479,98 +418,25 @@ namespace DownloadWikiData
             ans.Append(s.Substring(pre, s.Length - pre));
             return ans.ToString();
         }
+        string Process(string s)
+        {
+            s = System.Net.WebUtility.HtmlDecode(s);
+            s = RemoveExtraEmpties(s);
+            s = RemoveCiteNotes(s);
+            return s;
+        }
         public string Run(string _webContent)
         {
-            webContent = RemoveScripts(_webContent);
+            const string newLineIndicator = "AAAAAAAAAAZZZZZZZZZZ";
+            webContent = _webContent;
+            webContent = RemoveScripts(webContent);
+            webContent = ForceNewlineOnTheEndOfParagraph(webContent, newLineIndicator);
             contentIndex = 0;
-            result =new StringBuilder();
+            result = new StringBuilder();
             cutOff = false;
             Dfs();
             //Console.WriteLine($"cutoff={cutOff}");
-            return Process(result.ToString());
-        }
-    }
-    class Runner1
-    {
-        bool Compare(string webContent,int i,string s)
-        {
-            return string.CompareOrdinal(webContent, i, s, 0, s.Length) == 0;
-        }
-        string IdentifyTagStart(string webContent,int i, Dictionary<string, List<Dictionary<string, string>>> parentTags)
-        {
-            foreach (var tag in parentTags)
-            {
-                if (Compare(webContent, i, $"<{tag.Key.TrimEnd('/')} "))
-                {
-                    return tag.Key;
-                }
-            }
-            return null;
-        }
-        void Pop<T>(List<T> list) { list.RemoveAt(list.Count - 1); }
-        bool IdentifyTagEnd(string webContent,ref int i,ref Dictionary<string, List<Dictionary<string, string>>> parentTags)
-        {
-            foreach (var tag in parentTags)
-            {
-                if (tag.Key.EndsWith("/")) continue;
-                string symbol = $"<{tag.Key} />";
-                if(Compare(webContent,i,symbol))
-                {
-                    i += tag.Key.Length;
-                    i--;
-                    Pop(parentTags[tag.Key]);
-                    return true;
-                }
-            }
-            return false;
-        }
-        bool ContainsAttribute(List<Dictionary<string, string>>tagsProperties,string key,string value)
-        {
-            foreach(var ps in tagsProperties)
-            {
-                if (ps.ContainsKey(key) && ps[key] == value) return true;
-            }
-            return false;
-        }
-        bool IsWanted(Dictionary<string, List<Dictionary<string, string>>> parentTags)
-        {
-            if (parentTags["script"].Count > 0) return false;
-            if (ContainsAttribute(parentTags["table"], "class", "navbox")) return false;
-            if (ContainsAttribute(parentTags["div"], "class", "thumbcaption")) return true;
-            return true;
-        }
-        public string Run(string webContent)
-        {
-            Dictionary<string, List<Dictionary<string,string>>> parentTags = new Dictionary<string, List<Dictionary<string, string>>>
-            {
-                { "a", new List<Dictionary<string, string>>() },
-                {"h1", new List<Dictionary<string, string>>() },
-                {"h2", new List<Dictionary<string, string>>() },
-                {"h3", new List<Dictionary<string, string>>() },
-                {"h4", new List<Dictionary<string, string>>()},
-                {"script", new List<Dictionary<string, string>>() },
-                {"table", new List<Dictionary<string, string>>() },
-                {"p", new List<Dictionary<string, string>>() },
-                {"div", new List<Dictionary<string, string>>() },
-                {"img/", new List<Dictionary<string, string>>() }
-            };
-            StringBuilder ans = new StringBuilder();
-            for (int i=0;i<webContent.Length;i++)
-            {
-                if (!IdentifyTagEnd(webContent, ref i, ref parentTags))
-                {
-                    string tag = IdentifyTagStart(webContent, i, parentTags);
-                    if (tag == null)
-                    {
-                        if (IsWanted(parentTags)) ans.Append(webContent[i]);
-                    }
-                    else
-                    {
-
-                    }
-                }
-            }
-            return ans.ToString();
+            return Process(result.ToString()).Replace(newLineIndicator, "\n");
         }
     }
 }
