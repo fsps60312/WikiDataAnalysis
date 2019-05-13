@@ -376,7 +376,11 @@ namespace DownloadWikiData
         {
             return s
                 .Replace("</p>", $"{indicator}</p>")
-                .Replace("<br",$"{indicator}<br");
+                .Replace("<br", $"{indicator}<br")
+                .Replace("</li>", $"{indicator}</li>")
+                .Replace("</div>", $"{indicator}</div>")
+                .Replace("</dt>",$"{indicator}</dt>")
+                .Replace("</dd>",$"{indicator}</dd>");
         }
         bool IsCiteNote(string s, ref int i)
         {
@@ -425,6 +429,16 @@ namespace DownloadWikiData
             s = RemoveCiteNotes(s);
             return s;
         }
+        string RemoveEmptyLines(string s)
+        {
+            string ans = string.Join("\n", s.Split('\n').Select(v => v.Trim()));
+            do
+            {
+                s = ans;
+                ans = s.Replace("\n\n", "\n");
+            } while (ans != s);
+            return ans;
+        }
         public string Run(string _webContent)
         {
             const string newLineIndicator = "AAAAAAAAAAZZZZZZZZZZ";
@@ -436,7 +450,7 @@ namespace DownloadWikiData
             cutOff = false;
             Dfs();
             //Console.WriteLine($"cutoff={cutOff}");
-            return Process(result.ToString()).Replace(newLineIndicator, "\n");
+            return RemoveEmptyLines(Process(result.ToString()).Replace(newLineIndicator, "\n"));
         }
     }
 }

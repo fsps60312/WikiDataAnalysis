@@ -1,0 +1,468 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ecb2a8c8-6258-4859-9a9f-f90804b3e9cc}</ProjectGuid>
+    <Keyword>DynamicLibrary</Keyword>
+    <RootNamespace>opencc</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <AppContainerApplication>true</AppContainerApplication>
+    <ApplicationType>Windows Store</ApplicationType>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.16299.0</WindowsTargetPlatformMinVersion>
+    <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <GenerateManifest>false</GenerateManifest>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="opencc.h" />
+    <ClInclude Include="OpenCCver105\deps\darts-clone\darts.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\fused-src\gtest\gtest.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest-death-test.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest-message.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest-param-test.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest-printers.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest-spi.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest-test-part.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest-typed-test.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest_pred_impl.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\gtest_prod.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-death-test-internal.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-filepath.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-internal.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-linked_ptr.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-param-util-generated.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-param-util.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-port.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-string.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-tuple.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\include\gtest\internal\gtest-type-util.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\samples\prime_tables.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\samples\sample1.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\samples\sample2.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\samples\sample3-inl.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\samples\sample4.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-internal-inl.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-param-test_test.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-typed-test_test.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\test\production.h" />
+    <ClInclude Include="OpenCCver105\deps\gtest-1.7.0\xcode\Samples\FrameworkSample\widget.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\document.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\filestream.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\internal\pow10.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\internal\stack.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\internal\strfunc.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\prettywriter.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\rapidjson.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\reader.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\stringbuffer.h" />
+    <ClInclude Include="OpenCCver105\deps\rapidjson-0.11\writer.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\Arg.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\ArgException.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\ArgTraits.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\CmdLine.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\CmdLineInterface.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\CmdLineOutput.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\Constraint.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\DocBookOutput.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\HelpVisitor.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\IgnoreRestVisitor.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\MultiArg.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\MultiSwitchArg.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\OptionalUnlabeledTracker.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\StandardTraits.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\StdOutput.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\SwitchArg.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\UnlabeledMultiArg.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\UnlabeledValueArg.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\ValueArg.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\ValuesConstraint.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\VersionVisitor.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\Visitor.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\XorHandler.h" />
+    <ClInclude Include="OpenCCver105\deps\tclap-1.2.1\tclap\ZshCompletionOutput.h" />
+    <ClInclude Include="OpenCCver105\src\BinaryDict.hpp" />
+    <ClInclude Include="OpenCCver105\src\CmdLineOutput.hpp" />
+    <ClInclude Include="OpenCCver105\src\Common.hpp" />
+    <ClInclude Include="OpenCCver105\src\Config.hpp" />
+    <ClInclude Include="OpenCCver105\src\ConfigTestBase.hpp" />
+    <ClInclude Include="OpenCCver105\src\Conversion.hpp" />
+    <ClInclude Include="OpenCCver105\src\ConversionChain.hpp" />
+    <ClInclude Include="OpenCCver105\src\Converter.hpp" />
+    <ClInclude Include="OpenCCver105\src\DartsDict.hpp" />
+    <ClInclude Include="OpenCCver105\src\Dict.hpp" />
+    <ClInclude Include="OpenCCver105\src\DictConverter.hpp" />
+    <ClInclude Include="OpenCCver105\src\DictEntry.hpp" />
+    <ClInclude Include="OpenCCver105\src\DictGroup.hpp" />
+    <ClInclude Include="OpenCCver105\src\DictGroupTestBase.hpp" />
+    <ClInclude Include="OpenCCver105\src\Exception.hpp" />
+    <ClInclude Include="OpenCCver105\src\Export.hpp" />
+    <ClInclude Include="OpenCCver105\src\Lexicon.hpp" />
+    <ClInclude Include="OpenCCver105\src\MaxMatchSegmentation.hpp" />
+    <ClInclude Include="OpenCCver105\src\opencc.h" />
+    <ClInclude Include="OpenCCver105\src\Optional.hpp" />
+    <ClInclude Include="OpenCCver105\src\PhraseExtract.hpp" />
+    <ClInclude Include="OpenCCver105\src\Segmentation.hpp" />
+    <ClInclude Include="OpenCCver105\src\Segments.hpp" />
+    <ClInclude Include="OpenCCver105\src\SerializableDict.hpp" />
+    <ClInclude Include="OpenCCver105\src\SimpleConverter.hpp" />
+    <ClInclude Include="OpenCCver105\src\TestUtils.hpp" />
+    <ClInclude Include="OpenCCver105\src\TextDict.hpp" />
+    <ClInclude Include="OpenCCver105\src\TextDictTestBase.hpp" />
+    <ClInclude Include="OpenCCver105\src\UTF8StringSlice.hpp" />
+    <ClInclude Include="OpenCCver105\src\UTF8Util.hpp" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="opencc.cpp" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\codegear\gtest_all.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\codegear\gtest_link.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\fused-src\gtest\gtest-all.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\fused-src\gtest\gtest_main.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample1.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample10_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample1_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample2.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample2_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample3_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample4.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample4_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample5_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample6_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample7_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample8_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\samples\sample9_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-all.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-death-test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-filepath.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-port.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-printers.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-test-part.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest-typed-test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\src\gtest_main.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-death-test_ex_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-death-test_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-filepath_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-linked_ptr_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-listener_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-message_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-options_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-param-test2_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-param-test_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-port_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-printers_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-test-part_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-tuple_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-typed-test2_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-typed-test_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest-unittest-api_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_all_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_break_on_failure_unittest_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_catch_exceptions_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_color_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_environment_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_env_var_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_filter_unittest_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_help_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_list_tests_unittest_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_main_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_no_test_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_output_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_pred_impl_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_premature_exit_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_prod_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_repeat_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_shuffle_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_sole_header_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_stress_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_throw_on_failure_ex_test.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_throw_on_failure_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_uninitialized_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_unittest.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_xml_outfile1_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_xml_outfile2_test_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\gtest_xml_output_unittest_.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\test\production.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\xcode\Samples\FrameworkSample\widget.cc" />
+    <ClCompile Include="OpenCCver105\deps\gtest-1.7.0\xcode\Samples\FrameworkSample\widget_test.cc" />
+    <ClCompile Include="OpenCCver105\node\binding.cc" />
+    <ClCompile Include="OpenCCver105\src\BinaryDict.cpp" />
+    <ClCompile Include="OpenCCver105\src\BinaryDictTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\Config.cpp" />
+    <ClCompile Include="OpenCCver105\src\ConfigTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\Conversion.cpp" />
+    <ClCompile Include="OpenCCver105\src\ConversionChain.cpp" />
+    <ClCompile Include="OpenCCver105\src\ConversionChainTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\ConversionTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\Converter.cpp" />
+    <ClCompile Include="OpenCCver105\src\DartsDict.cpp" />
+    <ClCompile Include="OpenCCver105\src\DartsDictTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\Dict.cpp" />
+    <ClCompile Include="OpenCCver105\src\DictConverter.cpp" />
+    <ClCompile Include="OpenCCver105\src\DictEntry.cpp" />
+    <ClCompile Include="OpenCCver105\src\DictGroup.cpp" />
+    <ClCompile Include="OpenCCver105\src\DictGroupTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\MaxMatchSegmentation.cpp" />
+    <ClCompile Include="OpenCCver105\src\MaxMatchSegmentationTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\PhraseExtract.cpp" />
+    <ClCompile Include="OpenCCver105\src\PhraseExtractTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\Segmentation.cpp" />
+    <ClCompile Include="OpenCCver105\src\SimpleConverter.cpp" />
+    <ClCompile Include="OpenCCver105\src\SimpleConverterTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\TextDict.cpp" />
+    <ClCompile Include="OpenCCver105\src\TextDictTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\tools\CommandLine.cpp" />
+    <ClCompile Include="OpenCCver105\src\tools\DictConverter.cpp" />
+    <ClCompile Include="OpenCCver105\src\tools\PhraseExtract.cpp" />
+    <ClCompile Include="OpenCCver105\src\UTF8StringSlice.cpp" />
+    <ClCompile Include="OpenCCver105\src\UTF8StringSliceTest.cpp" />
+    <ClCompile Include="OpenCCver105\src\UTF8Util.cpp" />
+    <ClCompile Include="OpenCCver105\src\UTF8UtilTest.cpp" />
+    <ClCompile Include="OpenCCver105\test\CommandLineConvertTest.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
