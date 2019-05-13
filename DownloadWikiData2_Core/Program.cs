@@ -86,8 +86,8 @@ namespace DownloadWikiData2_Core
                 {
                     if (xmllist.Count != 1) return false;
                     var xml = xmllist.Item(0);
-                    if (xml.ChildNodes.Count != 1) return false;
-                    if (xml.FirstChild.GetType().Name.ToLower() != "xmltext") { Console.Error.WriteLine(xml.FirstChild.GetType().Name); return false; }
+                    if (xml.ChildNodes.Count > 1) return false;
+                    if (xml.ChildNodes.Count != 0 && xml.FirstChild.GetType().Name.ToLower() != "xmltext") { Console.Error.WriteLine(xml.FirstChild.GetType().Name); return false; }
                     return true;
                 });
                 using (var writer = Console.Out)
@@ -97,7 +97,21 @@ namespace DownloadWikiData2_Core
                     {
                         if (!(is_single_text_node(e.SelectNodes("title")) && is_single_text_node(e.SelectNodes("revision/text"))))
                         {
-                            Console.Error.WriteLine($"{e.SelectNodes("title").Count}, {e.SelectSingleNode("title").HasChildNodes}, {e.SelectNodes("revision/text").Count}, {e.SelectSingleNode("revision/text").HasChildNodes}");
+                            var t = e.SelectSingleNode("title");
+                            var r = e.SelectSingleNode("revision/text");
+                            Console.Error.WriteLine($"{e.SelectNodes("title").Count}, {t.HasChildNodes}, {e.SelectNodes("revision/text").Count}, {r.HasChildNodes}");
+                            if (t!=null)
+                            {
+                                Console.Error.WriteLine("title:");
+                                Console.Error.WriteLine(t.FirstChild.GetType().Name);
+                                Console.Error.WriteLine(t.InnerXml);
+                            }
+                            if (r != null)
+                            {
+                                Console.Error.WriteLine("revision/text:");
+                                Console.Error.WriteLine(r.FirstChild.GetType().Name);
+                                Console.Error.WriteLine(r.InnerXml);
+                            }
                             throw new Exception("title isn't text, or revision/text isn't text");
                         }
                         Console.Error.Write($"progress: {++progress} / {total_progress}\r");
