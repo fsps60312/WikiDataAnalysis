@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using System.IO;
 
 namespace DownloadWikiData2_Core
 {
@@ -34,23 +35,43 @@ namespace DownloadWikiData2_Core
             }
             return new XElement(doc.Name.LocalName, doc.Elements().Select(e => remove_all_namespaces(e)));
         }
-        static string remove_all_namespaces(string xml)
+        static void remove_all_namespaces(Stream istream,Stream ostream)
         {
-            var e = XElement.Parse(xml);
-            return remove_all_namespaces(e).ToString(SaveOptions.None);
+            var e = XElement.Load(istream);
+            remove_all_namespaces(e).Save(ostream);
         }
         static XmlDocument LoadXmlWithoutNamespaces()
         {
-            string xmlText = null;
-            Console.Error.Write("loading");
-            xmlText = Console.In.ReadToEnd();
-            Console.Error.Write(".");
-            xmlText = remove_all_namespaces(xmlText);
-            Console.Error.Write(".");
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml(xmlText);
-            Console.Error.WriteLine("OK");
-            return doc;
+            const string
+                tmp_file_name1 = "temporary_cache_file1",
+                tmp_file_name2 = "temporary_cache_file2";
+            try
+            {
+                Console.Error.Write("loading");
+                using (var writer = new StreamWriter(tmp_file_name1, false, Encoding.UTF8))
+                {
+                    char[] buffer = new char[1 << 20];
+                    for (int len; (len = Console.In.ReadBlock(buffer, 0, buffer.Length)) != 0;) writer.Write(buffer, 0, len);
+                }
+                Console.Error.Write(".");
+                using (var istream = new FileStream(tmp_file_name1, FileMode.Open))
+                {
+                    using (var ostream = new FileStream(tmp_file_name2, FileMode.CreateNew))
+                    {
+                        remove_all_namespaces(istream, ostream);
+                    }
+                }
+                Console.Error.Write(".");
+                XmlDocument doc = new XmlDocument();
+                doc.Load(tmp_file_name2);
+                Console.Error.WriteLine("OK");
+                return doc;
+            }
+            finally
+            {
+                File.Delete(tmp_file_name1);
+                File.Delete(tmp_file_name2);
+            }
         }
         static void Main(string[] args)
         {
